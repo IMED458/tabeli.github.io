@@ -62,7 +62,7 @@ export default function App() {
   });
 
   // UI state managers
-  const [activeTab, setActiveTab2] = useState<"timesheet" | "employees" | "recurring" | "stats">("timesheet");
+  const [activeTab, setActiveTab2] = useState<"timesheet" | "employees" | "recurring" | "stats" | "params">("timesheet");
   const [filterPosition, setFilterPosition] = useState<string>("ყველა");
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
 
@@ -805,7 +805,23 @@ export default function App() {
         setAuthPassword("");
         showToast("ავტორიზაცია გატარდა — კეთილი ყოველით, ადმინისტრატორო!", "success");
       } else {
-        setLockError("მომხმარებლის სახელი ან პაროლი არასწორია (შესასვლელად გამოიყენეთ: admin / admin123)");
+        // Check senior doctor / senior nurse credentials
+        const seniorEmployee = employees.find(
+          (emp) => emp.username && emp.password &&
+            emp.username === authUsername.trim() && emp.password === authPassword
+        );
+        if (seniorEmployee) {
+          setIsLocked(false);
+          setIsAdmin(true);
+          setLoggedInEmployeeId(seniorEmployee.id);
+          localStorage.setItem("hospital_logged_in_employee_id", seniorEmployee.id);
+          localStorage.setItem("hospital_is_superadmin_unlocked", "false");
+          setAuthUsername("");
+          setAuthPassword("");
+          showToast(`სესია გააქტიურდა: ${seniorEmployee.name} (${seniorEmployee.position})`, "success");
+        } else {
+          setLockError("მომხმარებლის სახელი ან პაროლი არასწორია");
+        }
       }
     } else {
       // Employee login using personal ID
@@ -1188,10 +1204,10 @@ export default function App() {
       )}
 
       {/* CORE FRAME CONTAINER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 flex flex-col lg:flex-row gap-6">
-        
+      <main className="flex-1 w-full px-3 lg:px-5 py-4 lg:py-5 flex flex-col lg:flex-row gap-5">
+
         {/* LEFT CONFIGURATION PANEL */}
-        <aside className="w-full lg:w-80 shrink-0 space-y-6 no-print">
+        <aside className="w-full lg:w-60 shrink-0 space-y-4 no-print">
           
           {/* Calendar Picker Block */}
           <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-100">
@@ -1248,97 +1264,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Clinical settings and back up regulations only shown to administrators */}
-          {isAdmin && (
-            <>
-              {/* Clinical Office Custom settings */}
-              <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-100">
-                <h3 className="text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <Settings size={13} className="text-[#0D3B66]" />
-                  უწყებრივი რეგულირება
-                </h3>
-
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-slate-500 mb-1">კომპანიის სათაური</label>
-                    <textarea
-                      value={settings.companyName}
-                      onChange={handleCompanyNameChange}
-                      rows={2}
-                      placeholder="მაგ: შპს ინგოროყვას კლინიკა"
-                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-250 rounded-lg text-xs text-slate-700 leading-normal focus:outline-none focus:border-sky-500 transition-all font-sans"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-slate-500 mb-1">სამედიცინო განყოფილება</label>
-                    <input
-                      type="text"
-                      value={settings.departmentName}
-                      onChange={handleDeptNameChange}
-                      placeholder="მაგ: რეანიმაცია"
-                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-250 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-sky-500 transition-all font-sans"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-slate-500 mb-1">თვის ნორმა საათებში</label>
-                    <input
-                      type="number"
-                      value={settings.standardHoursNorm}
-                      onChange={handleHoursNormChange}
-                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-250 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-sky-500 font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Database Backup tools */}
-              <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-100">
-                <h3 className="text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <DatabaseBackup size={13} className="text-[#0D3B66]" />
-                  რეზერვი და მონაცემები
-                </h3>
-                
-                <p className="text-[9.5px] text-slate-400 leading-relaxed mb-3 font-semibold">
-                  ყველა სამუშაო საათი ავტომატურად ინახება ბრაუზერში. თვის ცვლილებისას მონაცემები არ იკარგება.
-                </p>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={handleExportDatabase}
-                    className="w-full py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200"
-                  >
-                    მონაცემთა ჩამოტვირთვა (.json)
-                  </button>
-                  
-                  <label className="w-full py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-dashed border-slate-200">
-                    რეზერვის აღდგენა (.json)
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportDatabase}
-                      className="hidden"
-                    />
-                  </label>
-
-                  <button
-                    onClick={handleClearAllShifts}
-                    className="w-full py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-red-500/10"
-                  >
-                    ტაბელის სრული გასუფთავება
-                  </button>
-
-                  <button
-                    onClick={handleResetToDefaults}
-                    className="w-full py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-lg text-[9px] font-bold cursor-pointer transition-all text-center"
-                  >
-                    ნაგულისხმევი დემო ბაზა
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
         </aside>
 
         {/* WORKSPACE AREA */}
@@ -1394,6 +1319,20 @@ export default function App() {
               <BarChart3 size={13.5} />
               ანალიტიკა / სტატისტიკა
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab2("params")}
+                className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === "params"
+                    ? "bg-white text-[#0F4C81] shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Settings size={13.5} />
+                პარამეტრები
+              </button>
+            )}
           </nav>
 
           {/* DYNAMIC VIEWPORTS */}
@@ -1562,6 +1501,84 @@ export default function App() {
                   month={settings.month}
                   standardHoursNorm={settings.standardHoursNorm}
                 />
+              </div>
+            )}
+
+            {activeTab === "params" && isAdmin && (
+              <div className="no-print space-y-6 max-w-2xl animate-fade-in">
+                {/* Clinical Office Custom settings */}
+                <div className="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                  <h3 className="text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <Settings size={13} className="text-[#0D3B66]" />
+                    უწყებრივი რეგულირება
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">კომპანიის სათაური</label>
+                      <textarea
+                        value={settings.companyName}
+                        onChange={handleCompanyNameChange}
+                        rows={2}
+                        placeholder="მაგ: შპს ინგოროყვას კლინიკა"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 leading-normal focus:outline-none focus:border-sky-500 transition-all font-sans"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">სამედიცინო განყოფილება</label>
+                      <input
+                        type="text"
+                        value={settings.departmentName}
+                        onChange={handleDeptNameChange}
+                        placeholder="მაგ: რეანიმაცია"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-sky-500 transition-all font-sans"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">თვის ნორმა საათებში</label>
+                      <input
+                        type="number"
+                        value={settings.standardHoursNorm}
+                        onChange={handleHoursNormChange}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-sky-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Database Backup tools */}
+                <div className="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                  <h3 className="text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <DatabaseBackup size={13} className="text-[#0D3B66]" />
+                    რეზერვი და მონაცემები
+                  </h3>
+                  <p className="text-[9.5px] text-slate-400 leading-relaxed mb-4 font-semibold">
+                    ყველა სამუშაო საათი ავტომატურად ინახება ბრაუზერში. თვის ცვლილებისას მონაცემები არ იკარგება.
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleExportDatabase}
+                      className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200"
+                    >
+                      მონაცემთა ჩამოტვირთვა (.json)
+                    </button>
+                    <label className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-dashed border-slate-200">
+                      რეზერვის აღდგენა (.json)
+                      <input type="file" accept=".json" onChange={handleImportDatabase} className="hidden" />
+                    </label>
+                    <button
+                      onClick={handleClearAllShifts}
+                      className="w-full py-2 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-red-500/10"
+                    >
+                      ტაბელის სრული გასუფთავება
+                    </button>
+                    <button
+                      onClick={handleResetToDefaults}
+                      className="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-lg text-[10px] font-bold cursor-pointer transition-all text-center"
+                    >
+                      ნაგულისხმევი დემო ბაზა
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

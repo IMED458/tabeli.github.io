@@ -207,13 +207,13 @@ export default function TimesheetGrid({
           </span>
         </div>
 
-        <div className="overflow-x-auto border border-slate-100 rounded-xl relative bg-white min-w-full print:border-none print:rounded-none">
+        <div className="overflow-auto border border-slate-100 rounded-xl relative bg-white min-w-full print:border-none print:rounded-none" style={{maxHeight: "calc(100vh - 270px)"}}>
           <table className="w-full text-left border-collapse min-w-[1350px] print:min-w-0">
             <thead>
               {/* Row 1: Merged column topics */}
               <tr className="bg-slate-50 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-b border-slate-150 print:bg-slate-100">
-                <th className="py-2.5 px-2 border-r border-slate-200 text-center w-8">№</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 w-44">თანამშრომლის სახელი, გვარი</th>
+                <th className="py-2.5 px-2 border-r border-slate-200 text-center w-8 sticky left-0 z-30 bg-slate-50">№</th>
+                <th className="py-2.5 px-3 border-r border-slate-200 w-44 sticky left-8 z-30 bg-slate-50">თანამშრომლის სახელი, გვარი</th>
                 <th className="py-2.5 px-2 border-r border-slate-200 text-center w-28">პირადი №</th>
                 <th className="py-2.5 px-3 border-r border-slate-200 text-center w-36">თანამდებობა</th>
                 
@@ -230,10 +230,10 @@ export default function TimesheetGrid({
 
               {/* Row 2: Sub-headers including days 1-31 and exact labels */}
               <tr className="bg-slate-50/50 border-b border-slate-200 text-[9.5px] font-bold text-slate-500 print:bg-slate-50">
-                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center"></th>
-                <th className="py-2 border-r border-slate-200 bg-slate-50"></th>
-                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center"></th>
-                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center"></th>
+                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center sticky top-0 left-0 z-[31]"></th>
+                <th className="py-2 border-r border-slate-200 bg-slate-50 sticky top-0 left-8 z-[31]"></th>
+                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center sticky top-0 z-20"></th>
+                <th className="py-2 border-r border-slate-200 bg-slate-50 text-center sticky top-0 z-20"></th>
 
                 {/* Days integers */}
                 {daysArray.map((day) => {
@@ -242,8 +242,8 @@ export default function TimesheetGrid({
                   return (
                     <th
                       key={day}
-                      className={`p-1 text-center border-r border-slate-200 font-mono text-xs cursor-default select-none shrink-0 w-8 ${
-                        isWE ? "bg-red-50 text-red-600 font-extrabold" : "text-slate-600"
+                      className={`p-1 text-center border-r border-slate-200 font-mono text-xs cursor-default select-none shrink-0 w-8 sticky top-0 z-20 ${
+                        isWE ? "bg-red-50 text-red-600 font-extrabold" : "text-slate-600 bg-slate-50"
                       }`}
                       title={isWE ? "შაბათ-კვირა / უქმე დღე" : `დღე ${day}`}
                     >
@@ -253,50 +253,50 @@ export default function TimesheetGrid({
                 })}
 
                 {/* STRIKT EXACT TEXT LABELS AS REQUESTED BY THE USER */}
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-amber-50/80 text-amber-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-amber-50/80 text-amber-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="თვის განმავლობაში ნამუშევარ დღეთა ჯამური რაოდენობა"
                 >
                   თვის განმავლობაში ნამუშევარ დღეთა ჯამური რაოდენობა
                 </th>
-                
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-lime-50/80 text-lime-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-lime-50/80 text-lime-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="თვის განმავლობაში ნამუშევარი საათების ჯამური რაოდენობა"
                 >
                   თვის განმავლობაში ნამუშევარი საათების ჯამური რაოდენობა
                 </th>
 
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-purple-50/80 text-purple-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-purple-50/80 text-purple-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="თვის განმავლობაში ზეგანაკვეთური ნამუშევარი საათების ჯამური რაოდენობა"
                 >
                   თვის განმავლობაში ზეგანაკვეთური ნამუშევარი საათების ჯამური რაოდენობა
                 </th>
 
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-indigo-50/80 text-indigo-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-indigo-50/80 text-indigo-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="თვის განმავლობაში ღამით (22:00-დან 6:00-მდე პერიოდი) ნამუშევარი საათების ჯამური რაოდენობა"
                 >
                   თვის განმავლობაში ღამით (22:00-დან 6:00-მდე პერიოდი) ნამუშევარი საათების ჯამური რაოდენობა
                 </th>
 
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-rose-50/80 text-rose-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-rose-50/80 text-rose-950 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="თვის განმავლობაში დასვენების,უქმე დღეებში ნამუშევარი საათების ჯამური რაოდენობა"
                 >
                   თვის განმავლობაში დასვენების,უქმე დღეებში ნამუშევარი საათების ჯამური რაოდენობა
                 </th>
 
-                <th 
-                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-slate-100 text-slate-900 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none"
+                <th
+                  className="p-1 px-1.5 text-center border-r border-slate-200 bg-slate-100 text-slate-900 text-[9.5px] font-extrabold w-24 whitespace-normal leading-tight select-none sticky top-0 z-20"
                   title="სხვა (7-9 გრაფებისგან განსხვავებული ნამუშევარი საათების ჯამური რაოდენობა)"
                 >
                   სხვა (7-9 გრაფებისგან განსხვავებული ნამუშევარი საათების ჯამური რაოდენობა)
                 </th>
 
-                <th 
-                  className="p-1 px-2 text-center bg-[#F1F3F5] text-slate-800 text-[9.5px] font-extrabold w-18 whitespace-normal select-none"
+                <th
+                  className="p-1 px-2 text-center bg-[#F1F3F5] text-slate-800 text-[9.5px] font-extrabold w-18 whitespace-normal select-none sticky top-0 z-20"
                 >
                   ხელისმოწერა
                 </th>
@@ -321,12 +321,12 @@ export default function TimesheetGrid({
                   return (
                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group print:hover:bg-transparent">
                       {/* Index row */}
-                      <td className="py-2 px-1 text-center border-r border-slate-200 text-[11px] font-mono font-bold text-slate-400 bg-slate-50/35">
+                      <td className="py-2 px-1 text-center border-r border-slate-200 text-[11px] font-mono font-bold text-slate-400 bg-white sticky left-0 z-10">
                         {idx + 1}
                       </td>
 
                       {/* Name */}
-                      <td className="py-2.5 px-3 border-r border-slate-200 text-xs font-extrabold text-[#0D3B66]">
+                      <td className="py-2.5 px-3 border-r border-slate-200 text-xs font-extrabold text-[#0D3B66] bg-white sticky left-8 z-10">
                         <div className="flex items-center justify-between gap-1">
                           <span className="truncate">{emp.name}</span>
                           {isAdmin && (

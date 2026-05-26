@@ -25,14 +25,20 @@ export default function EmployeeManager({
   const [personalId, setPersonalId] = useState("");
   const [position, setPosition] = useState<PositionType>("ექიმი");
   const [specialStatus, setSpecialStatus] = useState<SpecialStatusType | "regular">("regular");
-  
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPersonalId, setEditPersonalId] = useState("");
   const [editPosition, setEditPosition] = useState<PositionType>("ექიმი");
   const [editSpecialStatus, setEditSpecialStatus] = useState<SpecialStatusType | "regular">("regular");
+  const [editUsername, setEditUsername] = useState("");
+  const [editPassword, setEditPassword] = useState("");
 
   const [errorMsg, setErrorMsg] = useState("");
+
+  const isSeniorRole = (pos: PositionType) => pos === "უფროსი ექიმი" || pos === "უფროსი ექთანი";
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +50,24 @@ export default function EmployeeManager({
       setErrorMsg("პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან");
       return;
     }
+    if (isSeniorRole(position) && (!newUsername.trim() || !newPassword.trim())) {
+      setErrorMsg("უფროს ექიმს / ექთანს სავალდებულოა მომხმარებელი და პაროლი");
+      return;
+    }
     setErrorMsg("");
     onAddEmployee({
       name: name.trim(),
       personalId,
       position,
       specialStatus: specialStatus === "regular" ? null : specialStatus,
+      ...(isSeniorRole(position) && { username: newUsername.trim(), password: newPassword }),
     });
     setName("");
     setPersonalId("");
     setPosition("ექიმი");
     setSpecialStatus("regular");
+    setNewUsername("");
+    setNewPassword("");
   };
 
   const startEdit = (emp: Employee) => {
@@ -63,6 +76,8 @@ export default function EmployeeManager({
     setEditPersonalId(emp.personalId);
     setEditPosition(emp.position);
     setEditSpecialStatus(emp.specialStatus || "regular");
+    setEditUsername(emp.username || "");
+    setEditPassword(emp.password || "");
   };
 
   const saveEdit = (id: string) => {
@@ -74,6 +89,10 @@ export default function EmployeeManager({
       setErrorMsg("პირადი ნომერი უნდა შედგებოდეს 11 ციფრისგან");
       return;
     }
+    if (isSeniorRole(editPosition) && (!editUsername.trim() || !editPassword.trim())) {
+      setErrorMsg("უფროს ექიმს / ექთანს სავალდებულოა მომხმარებელი და პაროლი");
+      return;
+    }
     setErrorMsg("");
     onUpdateEmployee({
       id,
@@ -82,6 +101,7 @@ export default function EmployeeManager({
       personalId: editPersonalId,
       position: editPosition,
       specialStatus: editSpecialStatus === "regular" ? null : editSpecialStatus,
+      ...(isSeniorRole(editPosition) && { username: editUsername.trim(), password: editPassword }),
     });
     setEditingId(null);
   };
@@ -165,6 +185,32 @@ export default function EmployeeManager({
               </select>
             </div>
 
+            {isSeniorRole(position) && (
+              <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg space-y-3">
+                <p className="text-[10px] font-black text-sky-800 uppercase tracking-wider">ადმინ შესვლის კრედენციალები</p>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">მომხმარებლის სახელი</label>
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="მაგ: dr.giorgi"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-sky-500 transition-all font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">პაროლი</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="პაროლი"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-sky-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               className="w-full mt-2 py-2.5 px-4 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow transition-all"
@@ -247,6 +293,30 @@ export default function EmployeeManager({
                             ))}
                           </select>
                         </div>
+                        {isSeniorRole(editPosition) && (
+                          <>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 font-semibold mb-0.5">მომხმარებლის სახელი</label>
+                              <input
+                                type="text"
+                                value={editUsername}
+                                onChange={(e) => setEditUsername(e.target.value)}
+                                placeholder="მაგ: dr.giorgi"
+                                className="w-full px-2 py-1 border border-sky-200 rounded text-sm text-slate-800 bg-sky-50 focus:outline-none focus:border-sky-500 font-sans"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 font-semibold mb-0.5">პაროლი</label>
+                              <input
+                                type="password"
+                                value={editPassword}
+                                onChange={(e) => setEditPassword(e.target.value)}
+                                placeholder="პაროლი"
+                                className="w-full px-2 py-1 border border-sky-200 rounded text-sm text-slate-800 bg-sky-50 focus:outline-none focus:border-sky-500 font-mono"
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       /* DISPLAY MODE */

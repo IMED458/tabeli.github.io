@@ -29,6 +29,8 @@ export interface Employee {
   personalId: string; // 11-digit personal ID
   position: PositionType;
   specialStatus?: SpecialStatusType | null; // active special status for the selected month which covers all days
+  username?: string; // admin login username (for senior doctor / senior nurse)
+  password?: string; // admin login password (for senior doctor / senior nurse)
 }
 
 export interface SpecialLeaveRange {
