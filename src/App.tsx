@@ -3,21 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Employee, PositionType, SpecialStatusType, EmployeeMonthlySchedule, SpecialLeaveRange } from "./types";
-import { GEORGIAN_MONTHS, isHolidayOrWeekend, getInitialShifts, DEFAULT_EMPLOYEES, POSITIONS } from "./constants";
+import { GEORGIAN_MONTHS, isHolidayOrWeekend, getInitialShifts, POSITIONS } from "./constants";
 import {
-  getStoredEmployees,
   setStoredEmployees,
-  getStoredSchedules,
-  setStoredSchedules,
-  getStoredDeptSettings,
   setStoredDeptSettings,
-  getStoredSpecialLeaves,
   setStoredSpecialLeaves,
   DeptSettings,
 } from "./utils/database";
-import { getCloudState, periodKey, saveCloudStatePatch, saveSchedulesForPeriod } from "./utils/cloudDatabase";
+import { subscribeToCloudState, periodKey, saveCloudStatePatch, saveSchedulesForPeriod } from "./utils/cloudDatabase";
+import { initFirestoreWithDefaults } from "./utils/database";
 import { generateExcelTimesheet } from "./utils/excelGenerator";
 
 // Subcomponents import
@@ -61,6 +57,10 @@ export default function App() {
     standardHoursNorm: 168,
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [schedulesByPeriod, setSchedulesByPeriod] = useState<{ [key: string]: { [empId: string]: EmployeeMonthlySchedule } }>({});
+  const schedulesByPeriodRef = useRef<{ [key: string]: { [empId: string]: EmployeeMonthlySchedule } }>({});
+
   // UI state managers
   const [activeTab, setActiveTab2] = useState<"timesheet" | "employees" | "recurring" | "stats" | "params">("timesheet");
   const [filterPosition, setFilterPosition] = useState<string>("ყველა");
@@ -100,87 +100,62 @@ export default function App() {
   const [leaveSearchQuery, setLeaveSearchQuery] = useState<string>("");
   const [leavePositionFilter, setLeavePositionFilter] = useState<string>("ყველა");
 
-  // Load from local localStorage on boot
+  // Real-time Firestore sync — single source of truth, no localStorage for data
   useEffect(() => {
-    const loadedEmps = getStoredEmployees();
-    setEmployees(loadedEmps);
-
-    const loadedSettings = getStoredDeptSettings();
-    setSettings(loadedSettings);
-
-    const loadedScheds = getStoredSchedules(loadedEmps, loadedSettings.year, loadedSettings.month);
-    setSchedules(loadedScheds);
-
-    const loadedLeaves = getStoredSpecialLeaves();
-    setSpecialLeaves(loadedLeaves);
-
-    // Initial check for stored log-in session (automatic locked verification or restoring stats)
     const storedEmpId = localStorage.getItem("hospital_logged_in_employee_id");
-    if (storedEmpId) {
-      const found = loadedEmps.find((e) => e.id === storedEmpId);
-      if (found) {
-        setLoggedInEmployeeId(found.id);
-        // Is it an administrator?
-        if (found.position === "უფროსი ექიმი" || found.position === "უფროსი ექთანი" || found.position === "ადმინისტრატორი") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-        setIsLocked(false);
-      }
-    } else {
-      // check if superadmin was unlocked previously
-      const isSuperAdminUnlocked = localStorage.getItem("hospital_is_superadmin_unlocked") === "true";
-      if (isSuperAdminUnlocked) {
-        setLoggedInEmployeeId(null);
-        setIsAdmin(true);
-        setIsLocked(false);
-      }
-    }
+    const isSuperAdmin = localStorage.getItem("hospital_is_superadmin_unlocked") === "true";
+    let firstLoad = true;
 
-    void getCloudState().then((cloud) => {
+    const unsubscribe = subscribeToCloudState((cloud) => {
       if (!cloud) {
-        saveCloudStatePatch({
-          employees: loadedEmps,
-          schedules: loadedScheds,
-          schedulesByPeriod: { [periodKey(loadedSettings.year, loadedSettings.month)]: loadedScheds },
-          settings: loadedSettings,
-          specialLeaves: loadedLeaves,
-        });
+        // Firestore has no data yet — initialise with defaults
+        initFirestoreWithDefaults();
+        if (firstLoad) {
+          firstLoad = false;
+          setIsLoading(false);
+        }
         return;
       }
 
-      if (cloud.employees) {
-        setEmployees(cloud.employees);
-        localStorage.setItem("hospital_employees", JSON.stringify(cloud.employees));
-      }
-      if (cloud.settings) {
-        setSettings(cloud.settings);
-        localStorage.setItem("hospital_dept_settings", JSON.stringify(cloud.settings));
-      }
-      if (cloud.specialLeaves) {
-        setSpecialLeaves(cloud.specialLeaves);
-        localStorage.setItem("hospital_special_leaves", JSON.stringify(cloud.specialLeaves));
-      }
-
-      const activeSettings = cloud.settings || loadedSettings;
-      const activeKey = periodKey(activeSettings.year, activeSettings.month);
-      const cloudSchedules = cloud.schedulesByPeriod?.[activeKey] || cloud.schedules;
-      if (cloudSchedules) {
-        setSchedules(cloudSchedules);
-        localStorage.setItem("hospital_schedules", JSON.stringify(cloudSchedules));
-        localStorage.setItem(`hospital_schedules_${activeKey}`, JSON.stringify(cloudSchedules));
-      }
-
+      // Always sync all data from Firestore
+      if (cloud.employees) setEmployees(cloud.employees);
+      if (cloud.settings) setSettings(cloud.settings);
+      if (cloud.specialLeaves !== undefined) setSpecialLeaves(cloud.specialLeaves ?? []);
       if (cloud.schedulesByPeriod) {
-        Object.entries(cloud.schedulesByPeriod).forEach(([key, value]) => {
-          localStorage.setItem(`hospital_schedules_${key}`, JSON.stringify(value));
-        });
+        setSchedulesByPeriod(cloud.schedulesByPeriod);
+        schedulesByPeriodRef.current = cloud.schedulesByPeriod;
       }
-    }).catch((error) => {
-      console.error("Firebase load failed", error);
+
+      // Update currently-viewed period schedules
+      const activeSettings = cloud.settings;
+      if (activeSettings) {
+        const activeKey = periodKey(activeSettings.year, activeSettings.month);
+        const periodScheds = cloud.schedulesByPeriod?.[activeKey] ?? cloud.schedules;
+        if (periodScheds) setSchedules(periodScheds);
+      } else if (cloud.schedules) {
+        setSchedules(cloud.schedules);
+      }
+
+      // Auth restoration — only on first Firestore response
+      if (firstLoad) {
+        firstLoad = false;
+        if (isSuperAdmin) {
+          setIsAdmin(true);
+          setIsLocked(false);
+        } else if (storedEmpId) {
+          const found = cloud.employees?.find((e) => e.id === storedEmpId);
+          if (found) {
+            setLoggedInEmployeeId(found.id);
+            setIsAdmin(["უფროსი ექიმი", "უფროსი ექთანი", "ადმინისტრატორი"].includes(found.position));
+            setIsLocked(false);
+          }
+        }
+        setIsLoading(false);
+      }
     });
-  }, []);
+
+    return () => unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update schedules whenever settings.year or settings.month changes
   const handlePeriodChange = (newYear: number, newMonth: number) => {
@@ -201,14 +176,13 @@ export default function App() {
     setSettings(nextSettings);
     setStoredDeptSettings(nextSettings);
 
-    // Refresh schedules for targeted month
-    const key = `hospital_schedules_${newYear}_${newMonth}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setSchedules(parsed);
+    // Load schedules for the new period from Firestore cache (schedulesByPeriodRef)
+    const key = periodKey(newYear, newMonth);
+    const storedPeriod = schedulesByPeriodRef.current[key];
+    if (storedPeriod && Object.keys(storedPeriod).length > 0) {
+      setSchedules(storedPeriod);
     } else {
-      // pre-generate schedules using smart offsets
+      // Generate default schedules and save to Firestore
       const initialMap = getInitialShifts(employees, newYear, newMonth);
       const res: { [employeeId: string]: EmployeeMonthlySchedule } = {};
       employees.forEach((emp) => {
@@ -220,8 +194,6 @@ export default function App() {
         };
       });
       setSchedules(res);
-      localStorage.setItem(key, JSON.stringify(res));
-      setStoredSchedules(res);
       saveSchedulesForPeriod(newYear, newMonth, res);
     }
 
@@ -258,10 +230,7 @@ export default function App() {
 
     if (hasChanges) {
       setSchedules(updatedSchedules);
-      const key = `hospital_schedules_${settings.year}_${settings.month}`;
-      localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
-    saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
+      saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
     }
   };
 
@@ -303,9 +272,6 @@ export default function App() {
     }
 
     setSchedules(updatedSchedules);
-    const key = `hospital_schedules_${settings.year}_${settings.month}`;
-    localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
   };
 
@@ -326,10 +292,7 @@ export default function App() {
         updatedSchedules[employeeId].shifts = {};
       }
       setSchedules(updatedSchedules);
-      const key = `hospital_schedules_${settings.year}_${settings.month}`;
-      localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
-    saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
+      saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
     }
 
     showToast(`თანამშრომლის სტატუსი განახლდა წარმატებით`, "success");
@@ -364,11 +327,7 @@ export default function App() {
       const nextScheds = { ...schedules };
       delete nextScheds[id];
       setSchedules(nextScheds);
-      
-      const key = `hospital_schedules_${settings.year}_${settings.month}`;
-      localStorage.setItem(key, JSON.stringify(nextScheds));
-    setStoredSchedules(nextScheds);
-    saveSchedulesForPeriod(settings.year, settings.month, nextScheds);
+      saveSchedulesForPeriod(settings.year, settings.month, nextScheds);
 
       showToast(`თანამშრომელი წარმატებით წაიშალა`, "info");
     }
@@ -442,9 +401,6 @@ export default function App() {
     });
 
     setSchedules(updatedSchedules);
-    const key = `hospital_schedules_${settings.year}_${settings.month}`;
-    localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
 
     showToast("განრიგი ავტომატურად შეივსო არჩეული წესით!", "success");
@@ -457,13 +413,9 @@ export default function App() {
       pMonth = 12;
       pYear = year - 1;
     }
-    const key = `hospital_schedules_${pYear}_${pMonth}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {}
-    }
+    const stored = schedulesByPeriodRef.current[periodKey(pYear, pMonth)];
+    if (stored && Object.keys(stored).length > 0) return stored;
+
     // Fallback: generate default previous month schedule
     const initialMap = getInitialShifts(employeesList, pYear, pMonth);
     const res: { [employeeId: string]: EmployeeMonthlySchedule } = {};
@@ -632,9 +584,6 @@ export default function App() {
     });
 
     setSchedules(updatedSchedules);
-    const key = `hospital_schedules_${settings.year}_${settings.month}`;
-    localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
 
     showToast(`განრიგი ავტომატურად გადაიანგარიშა წინა თვის (${GEORGIAN_MONTHS[pMonth]}) რიტმების მიხედვით! შეცვლილია ${successCount} პერსონალის გრაფიკი.`, "success");
@@ -647,31 +596,14 @@ export default function App() {
         cleared[id].shifts = {};
       });
       setSchedules(cleared);
-      const key = `hospital_schedules_${settings.year}_${settings.month}`;
-      localStorage.setItem(key, JSON.stringify(cleared));
-    setStoredSchedules(cleared);
-    saveSchedulesForPeriod(settings.year, settings.month, cleared);
+      saveSchedulesForPeriod(settings.year, settings.month, cleared);
       showToast("ტაბელი სრულად გასუფთავდა", "info");
     }
   };
 
   const handleResetToDefaults = () => {
     if (window.confirm("ნამდვილად გსურთ საწყის სატესტო მონაცემებზე დაბრუნება? მიმდინარე ცვლილებები წაიშლება.")) {
-      localStorage.clear();
-      const defaultEmps = DEFAULT_EMPLOYEES;
-      setEmployees(defaultEmps);
-      setStoredEmployees(defaultEmps);
-
-      const defaultSettings = { ...settings, year: 2025, month: 3, companyName: "შპს ინგოროყვას კლინიკა", departmentName: "მიმღები დეპარტამენტი (რეანიმაცია)", standardHoursNorm: 168 };
-      setSettings(defaultSettings);
-      setStoredDeptSettings(defaultSettings);
-
-      const defaultScheds = getStoredSchedules(defaultEmps, 2025, 3);
-      setSchedules(defaultScheds);
-      setStoredSpecialLeaves([]);
-      setSpecialLeaves([]);
-      saveSchedulesForPeriod(2025, 3, defaultScheds);
-
+      initFirestoreWithDefaults();
       showToast("სისტემა დაუბრუნდა ქარხნულ სატესტო მონაცემებს", "success");
     }
   };
@@ -700,7 +632,6 @@ export default function App() {
           setEmployees(parsed.employees);
           setStoredEmployees(parsed.employees);
           setSchedules(parsed.schedules);
-          setStoredSchedules(parsed.schedules);
           setSettings(parsed.settings);
           setStoredDeptSettings(parsed.settings);
           saveSchedulesForPeriod(parsed.settings.year, parsed.settings.month, parsed.schedules);
@@ -948,10 +879,6 @@ export default function App() {
 
     updatedSchedules[finalShiftEmpId].shifts = targetShifts;
     setSchedules(updatedSchedules);
-
-    const key = `hospital_schedules_${settings.year}_${settings.month}`;
-    localStorage.setItem(key, JSON.stringify(updatedSchedules));
-    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
 
     setIsAddShiftOpen(false);
@@ -998,6 +925,19 @@ export default function App() {
       showToast("შვებულების/ბიულეტენის ჩანაწერი წაიშალა", "info");
     }
   };
+
+  // Firebase loading screen
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#071E3D] flex flex-col items-center justify-center gap-5 text-white">
+        <div className="w-12 h-12 border-4 border-sky-400/30 border-t-sky-400 rounded-full animate-spin"></div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-black text-sky-300 uppercase tracking-widest">Firebase-დან ჩართვა</p>
+          <p className="text-xs text-slate-400 font-semibold">მონაცემები სინქრონიზდება...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Secure locked medical office login page
   if (isLocked) {

@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import type { Employee, EmployeeMonthlySchedule, SpecialLeaveRange } from "../types";
 import type { DeptSettings } from "./database";
@@ -20,6 +20,21 @@ export function periodKey(year: number, month: number) {
 export async function getCloudState(): Promise<CloudState | null> {
   const snapshot = await getDoc(CLOUD_DOC);
   return snapshot.exists() ? (snapshot.data() as CloudState) : null;
+}
+
+export function subscribeToCloudState(
+  callback: (state: CloudState | null) => void,
+): () => void {
+  return onSnapshot(
+    CLOUD_DOC,
+    (snapshot) => {
+      callback(snapshot.exists() ? (snapshot.data() as CloudState) : null);
+    },
+    (error) => {
+      console.error("Firestore listener error", error);
+      callback(null);
+    },
+  );
 }
 
 export function saveCloudStatePatch(patch: CloudState) {
