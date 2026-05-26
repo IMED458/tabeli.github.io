@@ -207,7 +207,7 @@ export default function TimesheetGrid({
           </span>
         </div>
 
-        <div className="overflow-auto border border-slate-100 rounded-xl relative bg-white min-w-full print:border-none print:rounded-none" style={{maxHeight: "calc(100vh - 270px)"}}>
+        <div className="overflow-auto border border-slate-100 rounded-xl relative bg-white min-w-full print:border-none print:rounded-none" style={{maxHeight: "calc(100dvh - 240px)"}}>
           <table className="w-full text-left border-collapse min-w-[1350px] print:min-w-0">
             <thead>
               {/* Row 1: Merged column topics */}
@@ -510,19 +510,18 @@ export default function TimesheetGrid({
       `}</style>
 
       {/* SEARCH AND ACTION TOOLBAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100 no-print">
-        
-        {/* Real-time Employee searching tool */}
-        <div className="flex items-center gap-2 flex-1 max-w-md">
-          <div className="relative w-full">
+      <div className="flex flex-col gap-2.5 pb-3 sm:pb-5 border-b border-slate-100 no-print">
+        <div className="flex items-center gap-2">
+          {/* Real-time Employee searching tool */}
+          <div className="relative flex-1">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 მოძებნეთ თანამშრომელი სახელით, როლით ან პირადი ნომრით..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-550 transition-all font-sans"
+              placeholder="მოძებნეთ სახელით ან პირადი ნომრით..."
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
             />
-            <Search size={14} className="absolute left-3.5 top-3 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
@@ -532,42 +531,38 @@ export default function TimesheetGrid({
               </button>
             )}
           </div>
-        </div>
 
-        {/* PRINT / EXCEL ACTIONS */}
-        <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
-          <span className="text-[11px] text-slate-400 font-bold font-mono mr-1 hidden sm:inline">
-            აღრიცხვის ნორმა: <strong className="text-slate-800 font-black">{standardHoursNorm} სთ</strong>
-          </span>
-          
-          {isAdmin && onSyncRhythmFromPreviousMonth && (
+          {/* Action buttons – icons+text on sm+, icons only on mobile */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isAdmin && onSyncRhythmFromPreviousMonth && (
+              <button
+                onClick={onSyncRhythmFromPreviousMonth}
+                className="p-2 sm:py-2 sm:px-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                title="წინა თვის მორიგეობებიდან გამომდინარე დარიტმვა"
+              >
+                <RefreshCw size={15} className="shrink-0" />
+                <span className="hidden sm:inline">წინა თვიდან</span>
+              </button>
+            )}
+
             <button
-              onClick={onSyncRhythmFromPreviousMonth}
-              className="py-2 px-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:shadow active:scale-[0.98] transition-all cursor-pointer"
-              title="წინა თვის მორიგეობებიდან გამომდინარე დარიტმვა და ავტომატური გაანგარიშება"
+              onClick={handleBrowserPrint}
+              className="p-2 sm:py-2 sm:px-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+              title="PDF ექსპორტი / ბეჭდვა"
             >
-              <RefreshCw size={15} className="shrink-0" />
-              წინა თვიდან დარითმვა
+              <Printer size={15} />
+              <span className="hidden sm:inline">PDF</span>
             </button>
-          )}
 
-          <button
-            onClick={handleBrowserPrint}
-            className="py-2 px-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:shadow active:scale-[0.98] transition-all cursor-pointer"
-            title="ტაბელის გვერდის გაექსპორტება და დაბეჭდვა PDF ფაილად"
-          >
-            <Printer size={15} />
-            PDF ექსპორტი / ბეჭდვა
-          </button>
-
-          <button
-            onClick={onDownloadExcel}
-            className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:shadow active:scale-[0.98] transition-all cursor-pointer"
-            title="ცალკე სატაბელო ველების ექსპორტი Excel დოკუმენტში"
-          >
-            <FileSpreadsheet size={15} />
-            Excel ჩამოტვირთვა (.xlsx)
-          </button>
+            <button
+              onClick={onDownloadExcel}
+              className="p-2 sm:py-2 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+              title="Excel ჩამოტვირთვა"
+            >
+              <FileSpreadsheet size={15} />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+          </div>
         </div>
       </div>
 

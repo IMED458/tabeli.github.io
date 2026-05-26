@@ -1056,20 +1056,21 @@ export default function App() {
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans flex flex-col antialiased">
       
       {/* PROFESSIONAL MEDICAL OFFICE TOP APP BAR */}
-      <header className="bg-white border-b border-slate-100 shadow-xs h-16 shrink-0 relative sticky top-0 z-30 no-print">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0F4C81] rounded-2xl flex items-center justify-center shadow-lg shadow-sky-650/10 shrink-0 transform -rotate-1">
-              <HeartPulse size={20} className="text-white" />
+      <header className="bg-white border-b border-slate-100 shadow-xs h-14 sm:h-16 shrink-0 sticky top-0 z-30 no-print">
+        <div className="px-3 sm:px-4 lg:px-6 h-full flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0F4C81] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md shrink-0 transform -rotate-1">
+              <HeartPulse size={18} className="text-white" />
             </div>
-            <div>
-              <span className="text-[9px] tracking-widest uppercase font-black text-slate-400 leading-none block">ინგოროყვას სახ. საავადმყოფო</span>
-              <h1 className="text-md font-black text-[#0D3B66] tracking-tight mt-0.5">მორიგეობისა და სახელფასო ტაბელის პორტალი</h1>
+            <div className="min-w-0">
+              <span className="hidden sm:block text-[9px] tracking-widest uppercase font-black text-slate-400 leading-none">ინგოროყვას სახ. საავადმყოფო</span>
+              <h1 className="hidden sm:block text-md font-black text-[#0D3B66] tracking-tight mt-0.5 truncate">მორიგეობისა და სახელფასო ტაბელის პორტალი</h1>
+              <h1 className="sm:hidden text-sm font-black text-[#0D3B66] truncate">სახელფასო ტაბელი</h1>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex flex-col text-right mr-1.5 select-none leading-none">
+
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <div className="hidden md:flex flex-col text-right mr-1.5 select-none leading-none">
               <span className="text-[9px] uppercase font-black tracking-widest text-slate-400">წვდომის რეჟიმი</span>
               <span className="text-xs font-extrabold text-[#0D3B66] mb-0.5">
                 {isAdmin ? "🛡️ ადმინისტრატორი" : "🧑‍⚕️ თანამშრომელი"}
@@ -1081,7 +1082,7 @@ export default function App() {
                 </div>
               ) : isAdmin ? (
                 <div className="flex flex-col leading-tight mt-0.5 border-t border-slate-100 pt-0.5">
-                  <span className="text-[11px] font-black text-slate-800">სისტემური ადმინისტრატორი (admin)</span>
+                  <span className="text-[11px] font-black text-slate-800">სისტემური ადმინისტრატორი</span>
                   <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wide">სუპერ ადმინი</span>
                 </div>
               ) : null}
@@ -1089,23 +1090,23 @@ export default function App() {
 
             {/* INLINE ACTIONS */}
             {!isLocked && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={openAddShiftModal}
-                  className="py-2 px-3.5 bg-[#00A8CC] hover:bg-[#0090B0] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                  className="p-2 sm:py-2 sm:px-3.5 bg-[#00A8CC] hover:bg-[#0090B0] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
                   title="ახალი მორიგეობის დაგეგმვა"
                 >
-                  <PlusCircle size={15} />
-                  მორიგეობის დამატება
+                  <PlusCircle size={16} />
+                  <span className="hidden sm:inline">მორიგეობის დამატება</span>
                 </button>
-                
+
                 <button
                   onClick={openLeaveModal}
-                  className="py-2 px-3.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                  className="p-2 sm:py-2 sm:px-3.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
                   title="შვებულების, ბიულეტენის ან დეკრეტის გაფორმება"
                 >
-                  <Umbrella size={14} className="text-white shrink-0" />
-                  შვებულება/ბიულეტენი
+                  <Umbrella size={16} className="text-white shrink-0" />
+                  <span className="hidden sm:inline">შვებულება/ბიულეტენი</span>
                 </button>
               </div>
             )}
@@ -1118,11 +1119,11 @@ export default function App() {
                 localStorage.removeItem("hospital_logged_in_employee_id");
                 localStorage.setItem("hospital_is_superadmin_unlocked", "false");
               }}
-              className="py-2 px-3 border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              className="p-2 sm:py-2 sm:px-3 border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
               title="სესიის ჩაკეტვა და გასვლა"
             >
-              <LogOut size={13} />
-              გასვლა
+              <LogOut size={15} />
+              <span className="hidden sm:inline">გასვლა</span>
             </button>
           </div>
         </div>
@@ -1130,9 +1131,9 @@ export default function App() {
 
       {/* TOAST PANEL */}
       {statusMsg && (
-        <div className="fixed bottom-6 right-6 z-50 animate-fade-in no-print">
+        <div className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 sm:w-auto z-50 animate-fade-in no-print">
           <div
-            className={`px-5 py-3 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-3 ${
+            className={`px-4 py-3 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-3 ${
               statusMsg.type === "success"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                 : statusMsg.type === "error"
@@ -1140,68 +1141,74 @@ export default function App() {
                 : "bg-sky-50 border-sky-200 text-sky-800"
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-current"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-current shrink-0"></div>
             <span>{statusMsg.text}</span>
           </div>
         </div>
       )}
 
       {/* CORE FRAME CONTAINER */}
-      <main className="flex-1 w-full px-3 lg:px-5 py-4 lg:py-5 flex flex-col lg:flex-row gap-5">
+      <main className="flex-1 w-full px-2 sm:px-3 lg:px-5 py-2 sm:py-4 lg:py-5 flex flex-col lg:flex-row gap-3 lg:gap-5">
 
         {/* LEFT CONFIGURATION PANEL */}
-        <aside className="w-full lg:w-60 shrink-0 space-y-4 no-print">
-          
-          {/* Calendar Picker Block */}
-          <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-100">
-            <h3 className="text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+        <aside className="w-full lg:w-60 shrink-0 no-print">
+
+          {/* Mobile: compact horizontal strip / Desktop: full card */}
+          <div className="bg-white rounded-xl shadow-xs border border-slate-100 px-3 py-2.5 lg:p-5">
+            <h3 className="hidden lg:flex text-[10.5px] font-black text-slate-400 uppercase tracking-wider mb-2.5 items-center gap-1.5">
               <Calendar size={13} className="text-[#0D3B66]" />
               საანგარიშო პერიოდი
             </h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 mb-1">უწყებრივი თვე და წელი</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={settings.month}
-                    onChange={(e) => handlePeriodChange(settings.year, parseInt(e.target.value))}
-                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none transition-all cursor-pointer"
-                  >
-                    {Object.keys(GEORGIAN_MONTHS).map((mKey) => (
-                      <option key={mKey} value={mKey}>
-                        {GEORGIAN_MONTHS[parseInt(mKey)]}
-                      </option>
-                    ))}
-                  </select>
 
-                  <select
-                    value={settings.year}
-                    onChange={(e) => handlePeriodChange(parseInt(e.target.value), settings.month)}
-                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none transition-all cursor-pointer"
-                  >
-                    {[2024, 2025, 2026, 2027].map((yr) => (
-                      <option key={yr} value={yr}>
-                        {yr} წელი
-                      </option>
-                    ))}
-                  </select>
+            <div className="flex flex-row lg:flex-col items-center lg:items-stretch gap-2 lg:gap-3">
+              {/* Period selects – side-by-side always */}
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <select
+                  value={settings.month}
+                  onChange={(e) => handlePeriodChange(settings.year, parseInt(e.target.value))}
+                  className="px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none transition-all cursor-pointer"
+                >
+                  {Object.keys(GEORGIAN_MONTHS).map((mKey) => (
+                    <option key={mKey} value={mKey}>
+                      {GEORGIAN_MONTHS[parseInt(mKey)]}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={settings.year}
+                  onChange={(e) => handlePeriodChange(parseInt(e.target.value), settings.month)}
+                  className="px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none transition-all cursor-pointer"
+                >
+                  {[2024, 2025, 2026, 2027].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Norms strip – visible on all sizes */}
+              <div className="flex lg:hidden items-center gap-3 text-right shrink-0 font-mono border-l border-slate-100 pl-3">
+                <div>
+                  <span className="block text-[9px] text-slate-400 font-bold uppercase">ნორმა</span>
+                  <span className="text-xs font-black text-slate-700">{settings.standardHoursNorm}სთ</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] text-slate-400 font-bold uppercase">დღეები</span>
+                  <span className="text-xs font-black text-slate-700">{new Date(settings.year, settings.month, 0).getDate()}დ</span>
                 </div>
               </div>
 
-              {/* Quick norms indicators */}
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between font-mono">
+              {/* Norms block – desktop only */}
+              <div className="hidden lg:flex p-3 bg-slate-50 rounded-lg border border-slate-100 items-center justify-between font-mono">
                 <div>
                   <span className="block text-[9.5px] text-slate-400 font-bold uppercase">საათობრივი ნორმა</span>
-                  <span className="text-xs font-black text-slate-700">
-                    {settings.standardHoursNorm} სთ
-                  </span>
+                  <span className="text-xs font-black text-slate-700">{settings.standardHoursNorm} სთ</span>
                 </div>
                 <div className="text-right">
                   <span className="block text-[9.5px] text-slate-400 font-bold uppercase">თვის დღეები</span>
-                  <span className="text-xs font-black text-slate-700">
-                    {new Date(settings.year, settings.month, 0).getDate()} დღე
-                  </span>
+                  <span className="text-xs font-black text-slate-700">{new Date(settings.year, settings.month, 0).getDate()} დღე</span>
                 </div>
               </div>
             </div>
@@ -1210,70 +1217,70 @@ export default function App() {
         </aside>
 
         {/* WORKSPACE AREA */}
-        <section className="flex-1 space-y-6 min-w-0 print-full-width">
+        <section className="flex-1 space-y-3 sm:space-y-4 min-w-0 print-full-width">
           {/* NAVIGATION BAR - HIDDEN PRINT */}
-          <nav className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-150/65 rounded-xl w-fit no-print select-none">
+          <nav className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-slate-150/65 rounded-xl no-print select-none overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab2("timesheet")}
-              className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 px-2.5 sm:px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                 activeTab === "timesheet"
                   ? "bg-white text-[#0F4C81] shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <Calendar size={13.5} />
-              ცხრილი / ტაბელები
+              <Calendar size={14} />
+              <span className="hidden sm:inline">ცხრილი</span>
             </button>
 
             <button
               onClick={() => setActiveTab2("recurring")}
-              className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 px-2.5 sm:px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                 activeTab === "recurring"
                   ? "bg-white text-[#0F4C81] shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <RefreshCw size={13.5} />
-              {isAdmin ? "განმეორებადი და შვებულებები" : "შვებულებების რეესტრი"}
+              <RefreshCw size={14} />
+              <span className="hidden sm:inline">{isAdmin ? "განმეორებადი" : "შვებულებები"}</span>
             </button>
 
             {isAdmin && (
               <button
                 onClick={() => setActiveTab2("employees")}
-                className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-2 px-2.5 sm:px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                   activeTab === "employees"
                     ? "bg-white text-[#0F4C81] shadow-sm"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Users size={13.5} />
-                პერსონალი სიები
+                <Users size={14} />
+                <span className="hidden sm:inline">პერსონალი</span>
               </button>
             )}
 
             <button
               onClick={() => setActiveTab2("stats")}
-              className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 px-2.5 sm:px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                 activeTab === "stats"
                   ? "bg-white text-[#0F4C81] shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <BarChart3 size={13.5} />
-              ანალიტიკა / სტატისტიკა
+              <BarChart3 size={14} />
+              <span className="hidden sm:inline">ანალიტიკა</span>
             </button>
 
             {isAdmin && (
               <button
                 onClick={() => setActiveTab2("params")}
-                className={`py-2 px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-2 px-2.5 sm:px-3.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                   activeTab === "params"
                     ? "bg-white text-[#0F4C81] shadow-sm"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Settings size={13.5} />
-                პარამეტრები
+                <Settings size={14} />
+                <span className="hidden sm:inline">პარამეტრები</span>
               </button>
             )}
           </nav>
@@ -1535,8 +1542,8 @@ export default function App() {
 
       {/* SEARCHABLE DYNAMIC "მორიგეობის დაგეგმვა" MODAL WINDOW */}
       {isAddShiftOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 no-print select-none">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden animate-fade-in text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print select-none">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-100 w-full sm:max-w-lg max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
             
             {/* Modal Header */}
             <div className="px-6 py-4.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
@@ -1741,8 +1748,8 @@ export default function App() {
 
       {/* DETAILED DATE-RANGE "შვებულება და ბიულეტენი" REGISTRATION MODAL WINDOW */}
       {isLeaveOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 no-print select-none">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden animate-fade-in text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print select-none">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-100 w-full sm:max-w-lg max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
             
             {/* Modal Header */}
             <div className="px-6 py-4.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
