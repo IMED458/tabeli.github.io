@@ -66,13 +66,22 @@ export function setStoredSpecialLeaves(leaves: SpecialLeaveRange[]) {
 }
 
 export function initFirestoreWithDefaults() {
-  const defaultScheds = JUNE_2026_SCHEDULES;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const settings: DeptSettings = {
+    ...DEFAULT_DEPT_SETTINGS,
+    year: currentYear,
+    month: currentMonth,
+  };
+  const defaultScheds = currentYear === 2026 && currentMonth === 6 ? JUNE_2026_SCHEDULES : {};
   saveCloudStatePatch({
     employees: JUNE_2026_EMPLOYEES,
-    settings: DEFAULT_DEPT_SETTINGS,
-    schedules: defaultScheds,
+    settings,
+    schedules: currentYear === 2026 && currentMonth === 6 ? JUNE_2026_SCHEDULES : {},
     schedulesByPeriod: {
-      [periodKey(DEFAULT_DEPT_SETTINGS.year, DEFAULT_DEPT_SETTINGS.month)]: defaultScheds,
+      [periodKey(2026, 6)]: JUNE_2026_SCHEDULES,
+      [periodKey(currentYear, currentMonth)]: defaultScheds,
     },
     specialLeaves: JUNE_2026_SPECIAL_LEAVES,
   });

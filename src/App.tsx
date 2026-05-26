@@ -49,12 +49,15 @@ export default function App() {
   // 1. Core State Initialization
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedules, setSchedules] = useState<{ [employeeId: string]: EmployeeMonthlySchedule }>({});
-  const [settings, setSettings] = useState<DeptSettings>({
-    companyName: "",
-    departmentName: "",
-    year: 2025,
-    month: 3,
-    standardHoursNorm: 168,
+  const [settings, setSettings] = useState<DeptSettings>(() => {
+    const now = new Date();
+    return {
+      companyName: "",
+      departmentName: "",
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      standardHoursNorm: 168,
+    };
   });
 
   const [isLoading, setIsLoading] = useState(true);
