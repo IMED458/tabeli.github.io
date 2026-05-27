@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { Employee, PositionType, SpecialStatusType } from "../types";
 import { POSITIONS, SPECIAL_STATUSES } from "../constants";
-import { UserPlus, Trash2, Edit2, Check, X, ShieldAlert } from "lucide-react";
+import { UserPlus, Trash2, Edit2, Check, X, ShieldAlert, Search } from "lucide-react";
 
 interface EmployeeManagerProps {
   employees: Employee[];
@@ -37,6 +37,7 @@ export default function EmployeeManager({
   const [editPassword, setEditPassword] = useState("");
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isSeniorRole = (pos: PositionType) => pos === "უფროსი ექიმი" || pos === "უფროსი ექთანი";
   const hasSamePersonalIdAndPosition = (idNumber: string, pos: PositionType, ignoreId?: string) =>
@@ -233,16 +234,46 @@ export default function EmployeeManager({
         </div>
 
         {/* EMPLOYEES GRID/LIST */}
-        <div className="lg:col-span-2 space-y-3 max-h-[480px] overflow-y-auto pr-1">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-2">
-            <span>სულ: {employees.length} თანამშრომელი</span>
+        <div className="lg:col-span-2 space-y-3">
+          {/* Search + count header */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ძებნა სახელით, პირადი №-ით, თანამდებობით..."
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300 font-sans"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            <span className="text-xs text-slate-400 font-semibold shrink-0">
+              {searchQuery
+                ? `${employees.filter(e => {
+                    const q = searchQuery.toLowerCase();
+                    return e.name.toLowerCase().includes(q) || e.personalId.includes(q) || e.position.toLowerCase().includes(q);
+                  }).length} / ${employees.length}`
+                : `სულ: ${employees.length}`}
+            </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
             {employees.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-sm">თანამშრომლები არ არის დამატებული</div>
             ) : (
-              employees.map((emp) => {
+              employees.filter((emp) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return emp.name.toLowerCase().includes(q) || emp.personalId.includes(q) || emp.position.toLowerCase().includes(q);
+              }).map((emp) => {
                 const isEditing = editingId === emp.id;
                 return (
                   <div
