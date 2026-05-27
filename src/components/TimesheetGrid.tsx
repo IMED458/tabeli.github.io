@@ -70,6 +70,7 @@ export default function TimesheetGrid({
 
   // States for Special Status popup
   const [editingSpecialStatusId, setEditingSpecialStatusId] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("__none__");
 
   // States for leave date-range form inside the status modal
   const [leaveFormType, setLeaveFormType] = useState<SpecialStatusType>("შვებულება");
@@ -352,7 +353,7 @@ export default function TimesheetGrid({
                           <span className="truncate">{emp.name}</span>
                           {isAdmin && (
                             <button
-                              onClick={() => setEditingSpecialStatusId(emp.id)}
+                              onClick={() => { setSelectedStatus(emp.specialStatus ?? "__none__"); setEditingSpecialStatusId(emp.id); }}
                               className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-150 rounded text-sky-600 transition-all cursor-pointer block print:hidden"
                               title="სტატუსის შეცვლა"
                             >
@@ -376,7 +377,7 @@ export default function TimesheetGrid({
                       {hasSpecialStatus ? (
                         <td
                           colSpan={monthDaysCount}
-                          onClick={() => (isAdmin || (loggedInEmployee && loggedInEmployee.id === emp.id)) && setEditingSpecialStatusId(emp.id)}
+                          onClick={() => { if (isAdmin || (loggedInEmployee && loggedInEmployee.id === emp.id)) { setSelectedStatus(emp.specialStatus ?? "__none__"); setEditingSpecialStatusId(emp.id); } }}
                           className={`p-1 border-r border-slate-200 text-center bg-amber-50 hover:bg-amber-105 text-amber-850 font-black italic text-[11px] tracking-widest transition-all print:bg-transparent print:border-r ${
                             (isAdmin || (loggedInEmployee && loggedInEmployee.id === emp.id)) ? "cursor-pointer" : "cursor-default"
                           }`}
@@ -837,40 +838,34 @@ export default function TimesheetGrid({
 
               <div className="p-5 space-y-5">
                 {/* ── SECTION 1: Month-wide special status ── */}
-                {(() => {
-                  const currentStatus = employees.find(e => e.id === editingSpecialStatusId)?.specialStatus ?? null;
-                  const [selectedStatus, setSelectedStatus] = React.useState<string>(currentStatus ?? "__none__");
-                  return (
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide">სტატუსი მთელი თვისთვის</p>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        სტატუსის მინიჭებისას ყველა მორიგეობა ავტომატურად გაუქმდება და ტაბელი გაერთიანდება.
-                      </p>
-                      <div className="flex gap-2 pt-1">
-                        <select
-                          value={selectedStatus}
-                          onChange={(e) => setSelectedStatus(e.target.value)}
-                          className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2.5 bg-white text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-300 cursor-pointer"
-                        >
-                          <option value="__none__">✕ სტატუსის მოხსნა (აქტიური რეჟიმი)</option>
-                          {["დეკრეტული შვებულება", "შვებულება", "ავადმყოფობა", "ბიულეტენი", "ადმინისტრაციული", "გაცდენა"].map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => {
-                            const val = selectedStatus === "__none__" ? null : selectedStatus as SpecialStatusType;
-                            onUpdateEmployeeSpecialStatus(editingSpecialStatusId, val);
-                            setEditingSpecialStatusId(null);
-                          }}
-                          className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0"
-                        >
-                          გამოყენება
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide">სტატუსი მთელი თვისთვის</p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    სტატუსის მინიჭებისას ყველა მორიგეობა ავტომატურად გაუქმდება და ტაბელი გაერთიანდება.
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2.5 bg-white text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-300 cursor-pointer"
+                    >
+                      <option value="__none__">✕ სტატუსის მოხსნა (აქტიური რეჟიმი)</option>
+                      {["დეკრეტული შვებულება", "შვებულება", "ავადმყოფობა", "ბიულეტენი", "ადმინისტრაციული", "გაცდენა"].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        const val = selectedStatus === "__none__" ? null : selectedStatus as SpecialStatusType;
+                        onUpdateEmployeeSpecialStatus(editingSpecialStatusId, val);
+                        setEditingSpecialStatusId(null);
+                      }}
+                      className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0"
+                    >
+                      გამოყენება
+                    </button>
+                  </div>
+                </div>
 
                 <hr className="border-slate-100" />
 
