@@ -636,8 +636,8 @@ export default function TimesheetGrid({
 
       {/* DAY CELL SHIFT MODAL EDITOR */}
       {editingCell && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 no-print">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-100 w-full max-w-sm overflow-hidden animate-fade-in text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl border border-slate-100 w-full sm:max-w-sm max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
             {/* Header */}
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
@@ -696,7 +696,7 @@ export default function TimesheetGrid({
                     <button
                       type="button"
                       onClick={() => saveCellShift(0)}
-                      className="w-full py-2.5 bg-red-50 hover:bg-red-105 text-red-650 text-xs font-bold border border-red-100 rounded-lg transition-all cursor-pointer"
+                      className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold border border-red-200 rounded-lg transition-all cursor-pointer"
                     >
                       მორიგეობის წაშლა
                     </button>
@@ -726,8 +726,8 @@ export default function TimesheetGrid({
 
       {/* SPECIAL STATUS ASSIGN POPUP */}
       {editingSpecialStatusId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 no-print">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-100 w-full max-w-sm overflow-hidden animate-fade-in text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl border border-slate-100 w-full sm:max-w-sm max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-sm">თანამშრომლის სტატუსის მართვა</h3>
