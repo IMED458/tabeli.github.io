@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import type { Employee, EmployeeMonthlySchedule, SpecialLeaveRange } from "../types";
 import type { DeptSettings } from "./database";
@@ -48,10 +48,16 @@ export function saveSchedulesForPeriod(
   month: number,
   schedules: { [employeeId: string]: EmployeeMonthlySchedule },
 ) {
-  saveCloudStatePatch({
+  const key = periodKey(year, month);
+  void updateDoc(CLOUD_DOC, {
     schedules,
-    schedulesByPeriod: {
-      [periodKey(year, month)]: schedules,
-    },
+    [`schedulesByPeriod.${key}`]: schedules,
+    updatedAt: serverTimestamp(),
+  }).catch(() => {
+    void setDoc(CLOUD_DOC, {
+      schedules,
+      schedulesByPeriod: { [key]: schedules },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
   });
 }

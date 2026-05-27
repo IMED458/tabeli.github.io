@@ -280,6 +280,7 @@ export default function App() {
     };
 
     setSchedules(updatedSchedules);
+    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
   };
 
