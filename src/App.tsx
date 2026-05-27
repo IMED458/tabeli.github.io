@@ -1048,6 +1048,17 @@ export default function App() {
     showToast("შვებულების/ბიულეტენის ჩანაწერი წაიშალა", "info");
   };
 
+  // Reorder employees within a section (doctors or nurses) — redistributes their numbers
+  const handleReorderEmployees = (reorderedSection: Employee[]) => {
+    const sectionIds = new Set(reorderedSection.map(e => e.id));
+    const nextList = employees.map(emp => {
+      const updated = reorderedSection.find(r => r.id === emp.id);
+      return updated ?? emp;
+    });
+    // Preserve employees not in this section, replace section members with reordered+renumbered ones
+    handleSaveEmployees(nextList);
+  };
+
   // Apply a recurring rhythm pattern for one employee starting from a specific day
   const handleApplyRhythmFromDay = (
     employeeId: string,
@@ -1497,6 +1508,7 @@ export default function App() {
                 onClearEmployeeShifts={handleClearEmployeeMonthShifts}
                 onRemoveEmployeeFromMonth={handleRemoveEmployeeFromMonth}
                 onApplyRhythmFromDay={handleApplyRhythmFromDay}
+                onReorderEmployees={handleReorderEmployees}
               />
             )}
 

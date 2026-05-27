@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { Employee, PositionType, SpecialStatusType, SpecialLeaveRange } from "../types";
 import { isHolidayOrWeekend, GEORGIAN_MONTHS } from "../constants";
-import { FileSpreadsheet, Edit3, X, UserCheck, Printer, Search, ChevronRight, RefreshCw, Sparkles, Trash2, Plus, UserX, CalendarRange } from "lucide-react";
+import { FileSpreadsheet, Edit3, X, UserCheck, Printer, Search, ChevronRight, RefreshCw, Sparkles, Trash2, Plus, UserX, CalendarRange, GripVertical } from "lucide-react";
 
 const STATUS_ABBREVIATIONS: { [key in SpecialStatusType]: string } = {
   "დეკრეტული შვებულება": "დეკრ",
@@ -36,6 +36,7 @@ interface TimesheetGridProps {
   onDeleteSpecialLeave?: (id: string) => void;
   onClearEmployeeShifts?: (employeeId: string) => void;
   onRemoveEmployeeFromMonth?: (employeeId: string) => void;
+  onReorderEmployees?: (reorderedSection: Employee[]) => void;
   onApplyRhythmFromDay?: (
     employeeId: string,
     startDay: number,
@@ -61,6 +62,7 @@ export default function TimesheetGrid({
   onDeleteSpecialLeave,
   onClearEmployeeShifts,
   onRemoveEmployeeFromMonth,
+  onReorderEmployees,
   onApplyRhythmFromDay,
 }: TimesheetGridProps) {
   // States for cell editor popover
@@ -71,6 +73,37 @@ export default function TimesheetGrid({
   // States for Special Status popup
   const [editingSpecialStatusId, setEditingSpecialStatusId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("__none__");
+
+  // Drag-and-drop reorder state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, empId: string) => {
+    setDraggedId(empId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const handleDragOver = (e: React.DragEvent, empId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (empId !== dragOverId) setDragOverId(empId);
+  };
+  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); };
+  const handleDrop = (e: React.DragEvent, targetId: string, sectionList: Employee[]) => {
+    e.preventDefault();
+    setDraggedId(null);
+    setDragOverId(null);
+    if (!draggedId || draggedId === targetId) return;
+    const fromIdx = sectionList.findIndex(emp => emp.id === draggedId);
+    const toIdx   = sectionList.findIndex(emp => emp.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const reordered = [...sectionList];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    // Redistribute the section's original numbers in the new order
+    const origNumbers = sectionList.map(emp => emp.number).sort((a, b) => a - b);
+    const renumbered = reordered.map((emp, i) => ({ ...emp, number: origNumbers[i] }));
+    onReorderEmployees?.(renumbered);
+  };
 
   // States for leave date-range form inside the status modal
   const [leaveFormType, setLeaveFormType] = useState<SpecialStatusType>("შვებულება");
@@ -121,12 +154,18 @@ export default function TimesheetGrid({
   const doctorsList = employees
     .filter((emp) => doctorPositions.includes(emp.position))
     .filter(filterBySearch)
-    .sort((a, b) => getDoctorRank(a.position) - getDoctorRank(b.position));
+    .sort((a, b) => {
+      const r = getDoctorRank(a.position) - getDoctorRank(b.position);
+      return r !== 0 ? r : a.number - b.number;
+    });
 
   const nursesList = employees
     .filter((emp) => nursePositions.includes(emp.position))
     .filter(filterBySearch)
-    .sort((a, b) => getNurseRank(a.position) - getNurseRank(b.position));
+    .sort((a, b) => {
+      const r = getNurseRank(a.position) - getNurseRank(b.position);
+      return r !== 0 ? r : a.number - b.number;
+    });
 
   const showDoctors = !loggedInEmployee || loggedInEmployee.position === "ადმინისტრატორი" || doctorPositions.includes(loggedInEmployee.position);
   const showNurses = !loggedInEmployee || loggedInEmployee.position === "ადმინისტრატორი" || nursePositions.includes(loggedInEmployee.position);
@@ -341,10 +380,27 @@ export default function TimesheetGrid({
                   const displayPosition = emp.position === "უფროსი ექიმი" ? "განყოფილების უფროსი ექიმი" : emp.position;
 
                   return (
-                    <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group print:hover:bg-transparent">
-                      {/* Index row */}
-                      <td className="py-2 px-1 text-center border-r border-slate-200 text-[11px] font-mono font-bold text-slate-400 bg-white sticky left-0 z-10">
-                        {idx + 1}
+                    <tr
+                      key={emp.id}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, emp.id)}
+                      onDragOver={(e) => handleDragOver(e, emp.id)}
+                      onDrop={(e) => handleDrop(e, emp.id, list)}
+                      onDragEnd={handleDragEnd}
+                      className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors group print:hover:bg-transparent ${
+                        dragOverId === emp.id && draggedId !== emp.id ? "border-t-2 border-t-sky-400 bg-sky-50/30" : ""
+                      } ${draggedId === emp.id ? "opacity-50" : ""}`}
+                    >
+                      {/* Index / drag handle */}
+                      <td className="py-2 px-1 text-center border-r border-slate-200 text-[11px] font-mono font-bold text-slate-400 bg-white sticky left-0 z-10 select-none">
+                        {isAdmin ? (
+                          <>
+                            <span className="group-hover:hidden">{idx + 1}</span>
+                            <GripVertical size={13} className="hidden group-hover:block mx-auto text-slate-350 cursor-grab active:cursor-grabbing" />
+                          </>
+                        ) : (
+                          idx + 1
+                        )}
                       </td>
 
                       {/* Name */}
