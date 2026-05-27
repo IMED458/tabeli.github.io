@@ -280,8 +280,30 @@ export default function App() {
     };
 
     setSchedules(updatedSchedules);
-    setStoredSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
+  };
+
+  const handleClearEmployeeMonthShifts = (employeeId: string) => {
+    const target = employees.find((emp) => emp.id === employeeId);
+    if (!window.confirm(`ნამდვილად გსურთ ${target?.name || "თანამშრომლის"} მიმდინარე თვის ყველა მორიგეობის წაშლა?`)) {
+      return;
+    }
+
+    const prevRecord = schedules[employeeId];
+    const updatedSchedules = {
+      ...schedules,
+      [employeeId]: {
+        employeeId,
+        year: settings.year,
+        month: settings.month,
+        ...(prevRecord ?? {}),
+        shifts: {},
+      },
+    };
+
+    setSchedules(updatedSchedules);
+    saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
+    showToast("თანამშრომლის მიმდინარე თვის მორიგეობები გასუფთავდა", "success");
   };
 
   // Special monthly leave statuses
@@ -1446,6 +1468,7 @@ export default function App() {
                   onAddEmployee={handleAddEmployee}
                   onUpdateEmployee={handleUpdateEmployee}
                   onDeleteEmployee={handleDeleteEmployee}
+                  onClearEmployeeMonthShifts={handleClearEmployeeMonthShifts}
                 />
               </div>
             )}

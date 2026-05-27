@@ -13,6 +13,7 @@ interface EmployeeManagerProps {
   onAddEmployee: (emp: Omit<Employee, "id" | "number">) => void;
   onUpdateEmployee: (emp: Employee) => void;
   onDeleteEmployee: (id: string) => void;
+  onClearEmployeeMonthShifts: (id: string) => void;
 }
 
 export default function EmployeeManager({
@@ -20,6 +21,7 @@ export default function EmployeeManager({
   onAddEmployee,
   onUpdateEmployee,
   onDeleteEmployee,
+  onClearEmployeeMonthShifts,
 }: EmployeeManagerProps) {
   const [name, setName] = useState("");
   const [personalId, setPersonalId] = useState("");
@@ -347,6 +349,13 @@ export default function EmployeeManager({
                     <div className="flex items-center justify-end gap-2 shrink-0 md:self-center">
                       {isEditing ? (
                         <>
+                          <button
+                            onClick={() => onClearEmployeeMonthShifts(emp.id)}
+                            className="px-2 py-1.5 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-lg border border-red-100 transition-all cursor-pointer text-[11px] font-bold"
+                            title="მიმდინარე თვის ყველა მორიგეობის წაშლა"
+                          >
+                            თვის მორიგეობის გასუფთავება
+                          </button>
                           <button
                             onClick={() => saveEdit(emp.id)}
                             className="p-1.5 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 rounded-lg border border-transparent hover:border-emerald-100 transition-all cursor-pointer"
