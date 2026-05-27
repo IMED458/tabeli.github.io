@@ -15,6 +15,7 @@ interface EmployeeManagerProps {
   onDeleteEmployee: (id: string) => void;
   onClearEmployeeMonthShifts: (id: string) => void;
   onRemoveEmployeeFromMonth: (id: string) => void;
+  onAddLeaveRange: (employeeId: string, type: SpecialStatusType, startDate: string, endDate: string) => void;
 }
 
 export default function EmployeeManager({
@@ -24,6 +25,7 @@ export default function EmployeeManager({
   onDeleteEmployee,
   onClearEmployeeMonthShifts,
   onRemoveEmployeeFromMonth,
+  onAddLeaveRange,
 }: EmployeeManagerProps) {
   const [name, setName] = useState("");
   const [personalId, setPersonalId] = useState("");
@@ -39,6 +41,9 @@ export default function EmployeeManager({
   const [editSpecialStatus, setEditSpecialStatus] = useState<SpecialStatusType | "regular">("regular");
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [rangeType, setRangeType] = useState<SpecialStatusType>("შვებულება");
+  const [rangeStartDate, setRangeStartDate] = useState("");
+  const [rangeEndDate, setRangeEndDate] = useState("");
 
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -108,6 +113,21 @@ export default function EmployeeManager({
       ...(isSeniorRole(editPosition) && { username: editUsername.trim(), password: editPassword }),
     });
     setEditingId(null);
+  };
+
+  const addRangeStatus = (id: string) => {
+    if (!rangeStartDate || !rangeEndDate) {
+      setErrorMsg("მიუთითეთ პერიოდის დაწყება და დასრულება");
+      return;
+    }
+    if (rangeStartDate > rangeEndDate) {
+      setErrorMsg("დაწყების თარიღი დასრულებაზე გვიან ვერ იქნება");
+      return;
+    }
+    setErrorMsg("");
+    onAddLeaveRange(id, rangeType, rangeStartDate, rangeEndDate);
+    setRangeStartDate("");
+    setRangeEndDate("");
   };
 
   return (
@@ -321,6 +341,24 @@ export default function EmployeeManager({
                             </div>
                           </>
                         )}
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-amber-50/50 border border-amber-100 rounded-lg">
+                          <select
+                            value={rangeType}
+                            onChange={(e) => setRangeType(e.target.value as SpecialStatusType)}
+                            className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white"
+                          >
+                            {SPECIAL_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          </select>
+                          <input type="date" value={rangeStartDate} onChange={(e) => setRangeStartDate(e.target.value)} className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white" />
+                          <input type="date" value={rangeEndDate} onChange={(e) => setRangeEndDate(e.target.value)} className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white" />
+                          <button
+                            type="button"
+                            onClick={() => addRangeStatus(emp.id)}
+                            className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold cursor-pointer"
+                          >
+                            პერიოდის დამატება
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       /* DISPLAY MODE */

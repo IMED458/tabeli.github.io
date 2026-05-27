@@ -963,6 +963,16 @@ export default function App() {
     showToast("შვებულების/ბიულეტენის პერიოდი წარმატებით გაფორმდა!", "success");
   };
 
+  const handleAddEmployeeLeaveRange = (employeeId: string, type: SpecialStatusType, startDate: string, endDate: string) => {
+    const nextLeaves = [
+      ...specialLeaves,
+      { id: `leave-${Date.now()}`, employeeId, type, startDate, endDate },
+    ];
+    setSpecialLeaves(nextLeaves);
+    setStoredSpecialLeaves(nextLeaves);
+    showToast("სტატუსის პერიოდი დაემატა", "success");
+  };
+
   const handleDeleteLeaveRange = (id: string) => {
     if (window.confirm("ნამდვილად გსურთ ამ შვებულების/ბიულეტენის გაუქმება?")) {
       const nextLeaves = specialLeaves.filter(l => l.id !== id);
@@ -1483,6 +1493,7 @@ export default function App() {
                   onDeleteEmployee={handleDeleteEmployee}
                   onClearEmployeeMonthShifts={handleClearEmployeeMonthShifts}
                   onRemoveEmployeeFromMonth={handleRemoveEmployeeFromMonth}
+                  onAddLeaveRange={handleAddEmployeeLeaveRange}
                 />
               </div>
             )}
