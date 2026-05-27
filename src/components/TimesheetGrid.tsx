@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { Employee, PositionType, SpecialStatusType, SpecialLeaveRange } from "../types";
 import { isHolidayOrWeekend, GEORGIAN_MONTHS } from "../constants";
-import { FileSpreadsheet, Edit3, X, UserCheck, Printer, Search, ChevronRight, RefreshCw, Sparkles } from "lucide-react";
+import { FileSpreadsheet, Edit3, X, UserCheck, Printer, Search, ChevronRight, RefreshCw, Sparkles, Trash2, Plus, UserX, CalendarRange } from "lucide-react";
 
 const STATUS_ABBREVIATIONS: { [key in SpecialStatusType]: string } = {
   "დეკრეტული შვებულება": "დეკრ",
@@ -32,6 +32,10 @@ interface TimesheetGridProps {
   isAdmin: boolean;
   loggedInEmployee: Employee | null;
   onSyncRhythmFromPreviousMonth?: () => void;
+  onAddSpecialLeave?: (leave: Omit<SpecialLeaveRange, "id">) => void;
+  onDeleteSpecialLeave?: (id: string) => void;
+  onClearEmployeeShifts?: (employeeId: string) => void;
+  onDeleteEmployee?: (employeeId: string) => void;
 }
 
 export default function TimesheetGrid({
@@ -47,6 +51,10 @@ export default function TimesheetGrid({
   isAdmin,
   loggedInEmployee,
   onSyncRhythmFromPreviousMonth,
+  onAddSpecialLeave,
+  onDeleteSpecialLeave,
+  onClearEmployeeShifts,
+  onDeleteEmployee,
 }: TimesheetGridProps) {
   // States for cell editor popover
   const [editingCell, setEditingCell] = useState<{ employeeId: string; day: number } | null>(null);
@@ -54,6 +62,11 @@ export default function TimesheetGrid({
 
   // States for Special Status popup
   const [editingSpecialStatusId, setEditingSpecialStatusId] = useState<string | null>(null);
+
+  // States for leave date-range form inside the status modal
+  const [leaveFormType, setLeaveFormType] = useState<SpecialStatusType>("შვებულება");
+  const [leaveFormStart, setLeaveFormStart] = useState<string>("");
+  const [leaveFormEnd, setLeaveFormEnd] = useState<string>("");
 
   // Search keyword query state
   const [searchQuery, setSearchQuery] = useState("");
@@ -728,62 +741,194 @@ export default function TimesheetGrid({
       )}
 
       {/* SPECIAL STATUS ASSIGN POPUP */}
-      {editingSpecialStatusId && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl border border-slate-100 w-full sm:max-w-sm max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
-            <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-slate-800 text-sm">თანამშრომლის სტატუსის მართვა</h3>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  თანამშრომელი: {" "}
-                  <strong className="text-slate-700 font-bold">
-                    {employees.find((e) => e.id === editingSpecialStatusId)?.name}
-                  </strong>
-                </p>
-              </div>
-              <button
-                onClick={() => setEditingSpecialStatusId(null)}
-                className="p-1 hover:bg-slate-200 rounded-full transition-colors cursor-pointer text-slate-400"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {editingSpecialStatusId && (() => {
+        const empLeaves = specialLeaves.filter(l => l.employeeId === editingSpecialStatusId);
+        const empName = employees.find((e) => e.id === editingSpecialStatusId)?.name ?? "";
 
-            <div className="p-5 space-y-3">
-              <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                სპეციალური სტატუსის მინიჭებისას, მასთან დაკავშირებული თვის ყველა აქტიური მორიგეობა ავტომატურად გაუქმდება და ტაბელში უჯრები გაერთიანდება არჩეული სტატუსით.
-              </p>
+        const handleAddLeave = () => {
+          if (!leaveFormStart || !leaveFormEnd) return;
+          if (leaveFormStart > leaveFormEnd) return;
+          onAddSpecialLeave?.({
+            employeeId: editingSpecialStatusId,
+            type: leaveFormType,
+            startDate: leaveFormStart,
+            endDate: leaveFormEnd,
+          });
+          setLeaveFormStart("");
+          setLeaveFormEnd("");
+        };
 
-              <div className="space-y-1.5 pt-2">
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4 no-print">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl border border-slate-100 w-full sm:max-w-md max-h-[92dvh] overflow-y-auto animate-fade-in text-slate-800">
+              {/* Header */}
+              <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-sm">თანამშრომლის სტატუსის მართვა</h3>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    თანამშრომელი:{" "}
+                    <strong className="text-slate-700 font-bold">{empName}</strong>
+                  </p>
+                </div>
                 <button
-                  onClick={() => {
-                    onUpdateEmployeeSpecialStatus(editingSpecialStatusId, null);
-                    setEditingSpecialStatusId(null);
-                  }}
-                  className="w-full text-left py-2 px-3 hover:bg-red-50 rounded-xl border border-red-100/50 text-xs font-bold text-red-700 flex items-center gap-2 cursor-pointer transition-all"
+                  onClick={() => setEditingSpecialStatusId(null)}
+                  className="p-1 hover:bg-slate-200 rounded-full transition-colors cursor-pointer text-slate-400"
                 >
-                  <X size={14} />
-                  მორიგეობის აქტიურ რეჟიმში დაბრუნება (სტატუსის მოხსნა)
+                  <X size={16} />
                 </button>
+              </div>
 
-                {["დეკრეტული შვებულება", "შვებულება", "ავადმყოფობა", "ბიულეტენი", "ადმინისტრაციული", "გაცდენა"].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => {
-                      onUpdateEmployeeSpecialStatus(editingSpecialStatusId, status as SpecialStatusType);
-                      setEditingSpecialStatusId(null);
-                    }}
-                    className="w-full text-left py-2 px-3 hover:bg-sky-50 hover:text-sky-700 rounded-xl border border-slate-100 text-xs font-bold text-slate-700 flex items-center gap-2 cursor-pointer transition-all"
-                  >
-                    <UserCheck size={14} className="text-sky-600" />
-                    {status}
-                  </button>
-                ))}
+              <div className="p-5 space-y-5">
+                {/* ── SECTION 1: Month-wide special status ── */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide">სტატუსი მთელი თვისთვის</p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    სტატუსის მინიჭებისას ყველა მორიგეობა ავტომატურად გაუქმდება და ტაბელი გაერთიანდება.
+                  </p>
+                  <div className="space-y-1.5 pt-1">
+                    <button
+                      onClick={() => {
+                        onUpdateEmployeeSpecialStatus(editingSpecialStatusId, null);
+                        setEditingSpecialStatusId(null);
+                      }}
+                      className="w-full text-left py-2 px-3 hover:bg-red-50 rounded-xl border border-red-100/50 text-xs font-bold text-red-700 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <X size={14} />
+                      მორიგეობის აქტიურ რეჟიმში დაბრუნება (სტატუსის მოხსნა)
+                    </button>
+                    {["დეკრეტული შვებულება", "შვებულება", "ავადმყოფობა", "ბიულეტენი", "ადმინისტრაციული", "გაცდენა"].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => {
+                          onUpdateEmployeeSpecialStatus(editingSpecialStatusId, status as SpecialStatusType);
+                          setEditingSpecialStatusId(null);
+                        }}
+                        className="w-full text-left py-2 px-3 hover:bg-sky-50 hover:text-sky-700 rounded-xl border border-slate-100 text-xs font-bold text-slate-700 flex items-center gap-2 cursor-pointer transition-all"
+                      >
+                        <UserCheck size={14} className="text-sky-600" />
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* ── SECTION 2: Date-range leave management ── */}
+                {onAddSpecialLeave && (
+                  <div className="space-y-3">
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <CalendarRange size={12} />
+                      შვებულება / ბიულეტენი განსაზღვრული თარიღებით
+                    </p>
+
+                    {/* Existing leaves list */}
+                    {empLeaves.length > 0 && (
+                      <div className="space-y-1.5">
+                        {empLeaves.map((leave) => (
+                          <div
+                            key={leave.id}
+                            className="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-xs"
+                          >
+                            <span className="font-bold text-amber-800 shrink-0">{leave.type}</span>
+                            <span className="text-slate-500 font-mono text-[10px]">
+                              {leave.startDate} — {leave.endDate}
+                            </span>
+                            <button
+                              onClick={() => onDeleteSpecialLeave?.(leave.id)}
+                              className="p-1 hover:bg-red-100 rounded-lg text-red-400 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+                              title="წაშლა"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add new leave form */}
+                    <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">ახალი პერიოდის დამატება</p>
+                      <select
+                        value={leaveFormType}
+                        onChange={(e) => setLeaveFormType(e.target.value as SpecialStatusType)}
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-300 cursor-pointer"
+                      >
+                        {["შვებულება", "დეკრეტული შვებულება", "ბიულეტენი", "ავადმყოფობა", "ადმინისტრაციული", "გაცდენა"].map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] text-slate-400 font-semibold block mb-1">დაწყება</label>
+                          <input
+                            type="date"
+                            value={leaveFormStart}
+                            onChange={(e) => setLeaveFormStart(e.target.value)}
+                            className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] text-slate-400 font-semibold block mb-1">დასრულება</label>
+                          <input
+                            type="date"
+                            value={leaveFormEnd}
+                            onChange={(e) => setLeaveFormEnd(e.target.value)}
+                            className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleAddLeave}
+                        disabled={!leaveFormStart || !leaveFormEnd || leaveFormStart > leaveFormEnd}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        პერიოდის დამატება
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <hr className="border-slate-100" />
+
+                {/* ── SECTION 3: Destructive actions ── */}
+                {isAdmin && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide">სხვა მოქმედებები</p>
+
+                    {onClearEmployeeShifts && (
+                      <button
+                        onClick={() => {
+                          onClearEmployeeShifts(editingSpecialStatusId);
+                          setEditingSpecialStatusId(null);
+                        }}
+                        className="w-full text-left py-2 px-3 hover:bg-orange-50 rounded-xl border border-orange-100/60 text-xs font-bold text-orange-700 flex items-center gap-2 cursor-pointer transition-all"
+                      >
+                        <Trash2 size={14} />
+                        ამ თვის მორიგეობების გასუფთავება
+                      </button>
+                    )}
+
+                    {onDeleteEmployee && (
+                      <button
+                        onClick={() => {
+                          onDeleteEmployee(editingSpecialStatusId);
+                          setEditingSpecialStatusId(null);
+                        }}
+                        className="w-full text-left py-2 px-3 hover:bg-red-50 rounded-xl border border-red-100/60 text-xs font-bold text-red-700 flex items-center gap-2 cursor-pointer transition-all"
+                      >
+                        <UserX size={14} />
+                        თანამშრომლის წაშლა ბაზიდან
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -1031,6 +1031,44 @@ export default function App() {
     }
   };
 
+  // Add a leave range directly from the status modal (no confirm needed — user already filled the form)
+  const handleAddSpecialLeaveFromModal = (leave: Omit<SpecialLeaveRange, "id">) => {
+    const newLeave: SpecialLeaveRange = { ...leave, id: `leave-${Date.now()}` };
+    const nextLeaves = [...specialLeaves, newLeave];
+    setSpecialLeaves(nextLeaves);
+    setStoredSpecialLeaves(nextLeaves);
+    showToast("შვებულების/ბიულეტენის პერიოდი დაემატა", "success");
+  };
+
+  // Delete a leave range directly from the status modal (no confirm — user has a dedicated X per row)
+  const handleDeleteSpecialLeaveFromModal = (id: string) => {
+    const nextLeaves = specialLeaves.filter(l => l.id !== id);
+    setSpecialLeaves(nextLeaves);
+    setStoredSpecialLeaves(nextLeaves);
+    showToast("შვებულების/ბიულეტენის ჩანაწერი წაიშალა", "info");
+  };
+
+  // Clear a single employee's shifts for the current month
+  const handleClearEmployeeShifts = (employeeId: string) => {
+    const emp = employees.find(e => e.id === employeeId);
+    if (window.confirm(`ნამდვილად გსურთ ${emp?.name ?? "თანამშრომლის"} ამ თვის მორიგეობების სრული გასუფთავება?`)) {
+      lastLocalWriteTime.current = Date.now();
+      const updated = {
+        ...schedules,
+        [employeeId]: {
+          ...(schedules[employeeId] ?? {}),
+          employeeId,
+          year: settings.year,
+          month: settings.month,
+          shifts: {},
+        },
+      };
+      setSchedules(updated);
+      saveSchedulesForPeriod(settings.year, settings.month, updated);
+      showToast(`${emp?.name ?? "თანამშრომლის"} მორიგეობები გასუფთავდა`, "info");
+    }
+  };
+
   // Firebase loading screen
   if (isLoading) {
     return (
@@ -1405,6 +1443,10 @@ export default function App() {
                 isAdmin={isAdmin}
                 loggedInEmployee={loggedInEmployee}
                 onSyncRhythmFromPreviousMonth={handleSyncRhythmFromPreviousMonth}
+                onAddSpecialLeave={handleAddSpecialLeaveFromModal}
+                onDeleteSpecialLeave={handleDeleteSpecialLeaveFromModal}
+                onClearEmployeeShifts={handleClearEmployeeShifts}
+                onDeleteEmployee={handleDeleteEmployee}
               />
             )}
 
