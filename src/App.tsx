@@ -1048,6 +1048,55 @@ export default function App() {
     showToast("შვებულების/ბიულეტენის ჩანაწერი წაიშალა", "info");
   };
 
+  // Apply a recurring rhythm pattern for one employee starting from a specific day
+  const handleApplyRhythmFromDay = (
+    employeeId: string,
+    startDay: number,
+    hours: number,
+    pattern: "every_second" | "every_fourth" | "weekdays"
+  ) => {
+    lastLocalWriteTime.current = Date.now();
+    const numDays = new Date(settings.year, settings.month, 0).getDate();
+    const emp = employees.find((e) => e.id === employeeId);
+    if (!emp || emp.specialStatus) return;
+
+    const prevRecord = schedules[employeeId];
+    const newShifts = prevRecord ? { ...prevRecord.shifts } : {};
+
+    for (let day = startDay; day <= numDays; day++) {
+      const dateStr = `${settings.year}-${String(settings.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      let shouldAssign = false;
+      switch (pattern) {
+        case "every_second":
+          shouldAssign = (day - startDay) % 2 === 0;
+          break;
+        case "every_fourth":
+          shouldAssign = (day - startDay) % 4 === 0;
+          break;
+        case "weekdays":
+          shouldAssign = !isHolidayOrWeekend(dateStr);
+          break;
+      }
+      if (shouldAssign) {
+        newShifts[day] = { hours };
+      }
+    }
+
+    const updated = {
+      ...schedules,
+      [employeeId]: {
+        ...(prevRecord ?? {}),
+        employeeId,
+        year: settings.year,
+        month: settings.month,
+        shifts: newShifts,
+      },
+    };
+    setSchedules(updated);
+    saveSchedulesForPeriod(settings.year, settings.month, updated);
+    showToast(`დარითმვა გამოიყენა — ${emp.name}`, "success");
+  };
+
   // Clear a single employee's shifts for the current month
   const handleClearEmployeeShifts = (employeeId: string) => {
     const emp = employees.find(e => e.id === employeeId);
@@ -1445,8 +1494,9 @@ export default function App() {
                 onSyncRhythmFromPreviousMonth={handleSyncRhythmFromPreviousMonth}
                 onAddSpecialLeave={handleAddSpecialLeaveFromModal}
                 onDeleteSpecialLeave={handleDeleteSpecialLeaveFromModal}
-                onClearEmployeeShifts={handleClearEmployeeShifts}
-                onDeleteEmployee={handleDeleteEmployee}
+                onClearEmployeeShifts={handleClearEmployeeMonthShifts}
+                onRemoveEmployeeFromMonth={handleRemoveEmployeeFromMonth}
+                onApplyRhythmFromDay={handleApplyRhythmFromDay}
               />
             )}
 
@@ -1582,9 +1632,6 @@ export default function App() {
                   onAddEmployee={handleAddEmployee}
                   onUpdateEmployee={handleUpdateEmployee}
                   onDeleteEmployee={handleDeleteEmployee}
-                  onClearEmployeeMonthShifts={handleClearEmployeeMonthShifts}
-                  onRemoveEmployeeFromMonth={handleRemoveEmployeeFromMonth}
-                  onAddLeaveRange={handleAddEmployeeLeaveRange}
                 />
               </div>
             )}

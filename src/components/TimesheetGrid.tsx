@@ -35,7 +35,13 @@ interface TimesheetGridProps {
   onAddSpecialLeave?: (leave: Omit<SpecialLeaveRange, "id">) => void;
   onDeleteSpecialLeave?: (id: string) => void;
   onClearEmployeeShifts?: (employeeId: string) => void;
-  onDeleteEmployee?: (employeeId: string) => void;
+  onRemoveEmployeeFromMonth?: (employeeId: string) => void;
+  onApplyRhythmFromDay?: (
+    employeeId: string,
+    startDay: number,
+    hours: number,
+    pattern: "every_second" | "every_fourth" | "weekdays"
+  ) => void;
 }
 
 export default function TimesheetGrid({
@@ -54,11 +60,13 @@ export default function TimesheetGrid({
   onAddSpecialLeave,
   onDeleteSpecialLeave,
   onClearEmployeeShifts,
-  onDeleteEmployee,
+  onRemoveEmployeeFromMonth,
+  onApplyRhythmFromDay,
 }: TimesheetGridProps) {
   // States for cell editor popover
   const [editingCell, setEditingCell] = useState<{ employeeId: string; day: number } | null>(null);
   const [customHours, setCustomHours] = useState<string>("");
+  const [rhythmHours, setRhythmHours] = useState<number>(24);
 
   // States for Special Status popup
   const [editingSpecialStatusId, setEditingSpecialStatusId] = useState<string | null>(null);
@@ -678,7 +686,7 @@ export default function TimesheetGrid({
               <div>
                 <span className="block text-[11px] font-bold text-slate-400 uppercase mb-2">სწრაფი არჩევანი (საათები)</span>
                 <div className="grid grid-cols-4 gap-2">
-                  {[24, 12, 8, 6].map((hrs) => (
+                  {[24, 12, 8, 16].map((hrs) => (
                     <button
                       key={hrs}
                       type="button"
@@ -735,6 +743,55 @@ export default function TimesheetGrid({
                   </button>
                 </div>
               </form>
+
+              {/* ── RHYTHM SECTION ── */}
+              {onApplyRhythmFromDay && isAdmin && (
+                <div className="pt-4 border-t border-slate-100 space-y-3">
+                  <span className="block text-[11px] font-bold text-slate-400 uppercase">დარითმვა ამ დღიდან</span>
+
+                  {/* Hours selector for rhythm */}
+                  <div className="flex gap-1.5">
+                    {[24, 12, 8, 16].map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setRhythmHours(h)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                          rhythmHours === h
+                            ? "bg-sky-600 text-white border-sky-600"
+                            : "bg-sky-50 text-sky-700 border-sky-100 hover:bg-sky-100"
+                        }`}
+                      >
+                        {h}სთ
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Pattern buttons */}
+                  <div className="space-y-1.5">
+                    {([
+                      { label: "ყოველ 4 დღეში ერთხელ", pattern: "every_fourth" as const },
+                      { label: "ყოველ 2 დღეში ერთხელ", pattern: "every_second" as const },
+                      { label: "ყოველ სამუშაო დღე (შაბ/კვი გარდა)", pattern: "weekdays" as const },
+                    ] as const).map(({ label, pattern }) => (
+                      <button
+                        key={pattern}
+                        type="button"
+                        onClick={() => {
+                          if (editingCell) {
+                            onApplyRhythmFromDay(editingCell.employeeId, editingCell.day, rhythmHours, pattern);
+                            setEditingCell(null);
+                          }
+                        }}
+                        className="w-full text-left py-2 px-3 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold rounded-xl border border-violet-100 transition-all cursor-pointer flex items-center gap-2"
+                      >
+                        <RefreshCw size={12} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -910,16 +967,16 @@ export default function TimesheetGrid({
                       </button>
                     )}
 
-                    {onDeleteEmployee && (
+                    {onRemoveEmployeeFromMonth && (
                       <button
                         onClick={() => {
-                          onDeleteEmployee(editingSpecialStatusId);
+                          onRemoveEmployeeFromMonth(editingSpecialStatusId);
                           setEditingSpecialStatusId(null);
                         }}
                         className="w-full text-left py-2 px-3 hover:bg-red-50 rounded-xl border border-red-100/60 text-xs font-bold text-red-700 flex items-center gap-2 cursor-pointer transition-all"
                       >
                         <UserX size={14} />
-                        თანამშრომლის წაშლა ბაზიდან
+                        თანამშრომლის წაშლა ამ თვეში
                       </button>
                     )}
                   </div>

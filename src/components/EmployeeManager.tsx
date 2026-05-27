@@ -13,9 +13,6 @@ interface EmployeeManagerProps {
   onAddEmployee: (emp: Omit<Employee, "id" | "number">) => void;
   onUpdateEmployee: (emp: Employee) => void;
   onDeleteEmployee: (id: string) => void;
-  onClearEmployeeMonthShifts: (id: string) => void;
-  onRemoveEmployeeFromMonth: (id: string) => void;
-  onAddLeaveRange: (employeeId: string, type: SpecialStatusType, startDate: string, endDate: string) => void;
 }
 
 export default function EmployeeManager({
@@ -23,9 +20,6 @@ export default function EmployeeManager({
   onAddEmployee,
   onUpdateEmployee,
   onDeleteEmployee,
-  onClearEmployeeMonthShifts,
-  onRemoveEmployeeFromMonth,
-  onAddLeaveRange,
 }: EmployeeManagerProps) {
   const [name, setName] = useState("");
   const [personalId, setPersonalId] = useState("");
@@ -41,9 +35,6 @@ export default function EmployeeManager({
   const [editSpecialStatus, setEditSpecialStatus] = useState<SpecialStatusType | "regular">("regular");
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [rangeType, setRangeType] = useState<SpecialStatusType>("შვებულება");
-  const [rangeStartDate, setRangeStartDate] = useState("");
-  const [rangeEndDate, setRangeEndDate] = useState("");
 
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -125,20 +116,6 @@ export default function EmployeeManager({
     setEditingId(null);
   };
 
-  const addRangeStatus = (id: string) => {
-    if (!rangeStartDate || !rangeEndDate) {
-      setErrorMsg("მიუთითეთ პერიოდის დაწყება და დასრულება");
-      return;
-    }
-    if (rangeStartDate > rangeEndDate) {
-      setErrorMsg("დაწყების თარიღი დასრულებაზე გვიან ვერ იქნება");
-      return;
-    }
-    setErrorMsg("");
-    onAddLeaveRange(id, rangeType, rangeStartDate, rangeEndDate);
-    setRangeStartDate("");
-    setRangeEndDate("");
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
@@ -351,24 +328,6 @@ export default function EmployeeManager({
                             </div>
                           </>
                         )}
-                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-amber-50/50 border border-amber-100 rounded-lg">
-                          <select
-                            value={rangeType}
-                            onChange={(e) => setRangeType(e.target.value as SpecialStatusType)}
-                            className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white"
-                          >
-                            {SPECIAL_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                          </select>
-                          <input type="date" value={rangeStartDate} onChange={(e) => setRangeStartDate(e.target.value)} className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white" />
-                          <input type="date" value={rangeEndDate} onChange={(e) => setRangeEndDate(e.target.value)} className="px-2 py-1 border border-amber-200 rounded text-xs text-slate-800 bg-white" />
-                          <button
-                            type="button"
-                            onClick={() => addRangeStatus(emp.id)}
-                            className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold cursor-pointer"
-                          >
-                            პერიოდის დამატება
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       /* DISPLAY MODE */
@@ -399,20 +358,6 @@ export default function EmployeeManager({
                     <div className="flex items-center justify-end gap-2 shrink-0 md:self-center">
                       {isEditing ? (
                         <>
-                          <button
-                            onClick={() => onClearEmployeeMonthShifts(emp.id)}
-                            className="px-2 py-1.5 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-lg border border-red-100 transition-all cursor-pointer text-[11px] font-bold"
-                            title="მიმდინარე თვის ყველა მორიგეობის წაშლა"
-                          >
-                            თვის მორიგეობის გასუფთავება
-                          </button>
-                          <button
-                            onClick={() => onRemoveEmployeeFromMonth(emp.id)}
-                            className="px-2 py-1.5 hover:bg-red-50 text-red-700 hover:text-red-800 rounded-lg border border-red-100 transition-all cursor-pointer text-[11px] font-bold"
-                            title="ამ თვიდან და შემდეგ თვეებში თანამშრომლის ამოღება"
-                          >
-                            თანამშრომლის წაშლა ამ თვეში
-                          </button>
                           <button
                             onClick={() => saveEdit(emp.id)}
                             className="p-1.5 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 rounded-lg border border-transparent hover:border-emerald-100 transition-all cursor-pointer"
