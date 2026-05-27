@@ -48,6 +48,8 @@ export default function EmployeeManager({
   const [errorMsg, setErrorMsg] = useState("");
 
   const isSeniorRole = (pos: PositionType) => pos === "უფროსი ექიმი" || pos === "უფროსი ექთანი";
+  const hasSamePersonalIdAndPosition = (idNumber: string, pos: PositionType, ignoreId?: string) =>
+    employees.some((emp) => emp.personalId === idNumber && emp.position === pos && emp.id !== ignoreId);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +59,10 @@ export default function EmployeeManager({
     }
     if (personalId.length !== 11 || !/^\d+$/.test(personalId)) {
       setErrorMsg("პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან");
+      return;
+    }
+    if (hasSamePersonalIdAndPosition(personalId, position)) {
+      setErrorMsg("ეს თანამშრომელი ამ პოზიციაზე უკვე დარეგისტრირებულია");
       return;
     }
     if (isSeniorRole(position) && (!newUsername.trim() || !newPassword.trim())) {
@@ -96,6 +102,10 @@ export default function EmployeeManager({
     }
     if (editPersonalId.length !== 11 || !/^\d+$/.test(editPersonalId)) {
       setErrorMsg("პირადი ნომერი უნდა შედგებოდეს 11 ციფრისგან");
+      return;
+    }
+    if (hasSamePersonalIdAndPosition(editPersonalId, editPosition, id)) {
+      setErrorMsg("ეს თანამშრომელი ამ პოზიციაზე უკვე დარეგისტრირებულია");
       return;
     }
     if (isSeniorRole(editPosition) && (!editUsername.trim() || !editPassword.trim())) {

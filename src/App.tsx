@@ -21,6 +21,7 @@ import TimesheetGrid from "./components/TimesheetGrid";
 import ShiftQuickScheduler from "./components/ShiftQuickScheduler";
 import EmployeeManager from "./components/EmployeeManager";
 import StatsDashboard from "./components/StatsDashboard";
+import { JUNE_2026_EMPLOYEES } from "./data/june2026";
 
 // Icons import
 import {
@@ -104,6 +105,18 @@ export default function App() {
   const [leavePositionFilter, setLeavePositionFilter] = useState<string>("ყველა");
 
   const getPeriodValue = (year: number, month: number) => year * 100 + month;
+  const employeePositionKey = (emp: Pick<Employee, "personalId" | "position">) => `${emp.personalId}|${emp.position}`;
+  const mergeSeedEmployees = (cloudEmployees: Employee[]) => {
+    const seen = new Set(cloudEmployees.map(employeePositionKey));
+    const next = [...cloudEmployees];
+    JUNE_2026_EMPLOYEES.forEach((seedEmp) => {
+      if (!seen.has(employeePositionKey(seedEmp))) {
+        next.push({ ...seedEmp, number: next.length + 1 });
+        seen.add(employeePositionKey(seedEmp));
+      }
+    });
+    return next;
+  };
   const isEmployeeActiveForPeriod = (emp: Employee, year: number, month: number) => {
     if (!emp.inactiveFromPeriod) return true;
     const [inactiveYear, inactiveMonth] = emp.inactiveFromPeriod.split("_").map(Number);
@@ -129,7 +142,13 @@ export default function App() {
       }
 
       // Always sync all data from Firestore
-      if (cloud.employees) setEmployees(cloud.employees);
+      if (cloud.employees) {
+        const mergedEmployees = mergeSeedEmployees(cloud.employees);
+        setEmployees(mergedEmployees);
+        if (mergedEmployees.length !== cloud.employees.length) {
+          setStoredEmployees(mergedEmployees);
+        }
+      }
       if (cloud.settings) setSettings(cloud.settings);
       if (cloud.specialLeaves !== undefined) setSpecialLeaves(cloud.specialLeaves ?? []);
       if (cloud.schedulesByPeriod) {
