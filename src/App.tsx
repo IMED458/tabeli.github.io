@@ -64,6 +64,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [schedulesByPeriod, setSchedulesByPeriod] = useState<{ [key: string]: { [empId: string]: EmployeeMonthlySchedule } }>({});
   const schedulesByPeriodRef = useRef<{ [key: string]: { [empId: string]: EmployeeMonthlySchedule } }>({});
+  // Tracks the period the LOCAL user is viewing — never overridden by remote cloud.settings
+  const viewPeriodRef = useRef<{ year: number; month: number }>({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+  });
+  // Timestamp of last local schedule write — used to debounce onSnapshot overwrites
+  const lastLocalWriteTime = useRef<number>(0);
 
   // UI state managers
   const [activeTab, setActiveTab2] = useState<"timesheet" | "employees" | "recurring" | "stats" | "params">("timesheet");
@@ -149,26 +156,45 @@ export default function App() {
           setStoredEmployees(mergedEmployees);
         }
       }
-      if (cloud.settings) setSettings(cloud.settings);
+      // Sync settings but NEVER override the local user's period selection (year/month)
+      if (cloud.settings) {
+        setSettings(prev => ({
+          ...cloud.settings!,
+          year: prev.year,
+          month: prev.month,
+        }));
+      }
       if (cloud.specialLeaves !== undefined) setSpecialLeaves(cloud.specialLeaves ?? []);
       if (cloud.schedulesByPeriod) {
         setSchedulesByPeriod(cloud.schedulesByPeriod);
         schedulesByPeriodRef.current = cloud.schedulesByPeriod;
       }
 
-      // Update currently-viewed period schedules
-      const activeSettings = cloud.settings;
-      if (activeSettings) {
-        const activeKey = periodKey(activeSettings.year, activeSettings.month);
+      // FIX: initialise viewPeriodRef from cloud.settings on FIRST LOAD *before* loading schedules
+      // so that Block 2 below reads the correct period (not the component-mount default)
+      if (firstLoad && cloud.settings) {
+        viewPeriodRef.current = { year: cloud.settings.year, month: cloud.settings.month };
+      }
+
+      // Update currently-viewed period schedules using the LOCAL period ref
+      // (not cloud.settings) so Firebase syncs from other clients never reset the user's view
+      {
+        const activeKey = periodKey(viewPeriodRef.current.year, viewPeriodRef.current.month);
         const periodScheds = cloud.schedulesByPeriod?.[activeKey] ?? cloud.schedules;
-        if (periodScheds) setSchedules(periodScheds);
-      } else if (cloud.schedules) {
-        setSchedules(cloud.schedules);
+        // Debounce: skip if we just did a local write (prevents remote overwrites)
+        const msSinceWrite = Date.now() - lastLocalWriteTime.current;
+        if (msSinceWrite > 2000) {
+          if (periodScheds) setSchedules(periodScheds);
+        }
       }
 
       // Auth restoration — only on first Firestore response
       if (firstLoad) {
         firstLoad = false;
+        // Persist the period choice to React state on first load
+        if (cloud.settings) {
+          setSettings(prev => ({ ...prev, year: cloud.settings!.year, month: cloud.settings!.month }));
+        }
         if (isSuperAdmin) {
           setIsAdmin(true);
           setIsLocked(false);
@@ -204,6 +230,7 @@ export default function App() {
     nextSettings.standardHoursNorm = computedNorm;
 
     setSettings(nextSettings);
+    viewPeriodRef.current = { year: newYear, month: newMonth };
     setStoredDeptSettings(nextSettings);
 
     // Load schedules for the new period from Firestore cache (schedulesByPeriodRef)
@@ -283,6 +310,8 @@ export default function App() {
 
   // Quick live grid cell update
   const handleUpdateShift = (employeeId: string, day: number, hours: number) => {
+    // Mark local write in progress — debounces onSnapshot overwrites for 2s
+    lastLocalWriteTime.current = Date.now();
     // Deep-copy the affected employee's record to avoid mutating existing state
     const prevRecord = schedules[employeeId];
     const newShifts = prevRecord ? { ...prevRecord.shifts } : {};
@@ -347,6 +376,7 @@ export default function App() {
 
   // Special monthly leave statuses
   const handleUpdateEmployeeSpecialStatus = (employeeId: string, status: SpecialStatusType | null) => {
+    lastLocalWriteTime.current = Date.now();
     const updatedEmployees = employees.map((emp) => {
       if (emp.id === employeeId) {
         return { ...emp, specialStatus: status };
