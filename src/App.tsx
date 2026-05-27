@@ -258,21 +258,26 @@ export default function App() {
 
   // Quick live grid cell update
   const handleUpdateShift = (employeeId: string, day: number, hours: number) => {
-    const updatedSchedules = { ...schedules };
-    if (!updatedSchedules[employeeId]) {
-      updatedSchedules[employeeId] = {
+    // Deep-copy the affected employee's record to avoid mutating existing state
+    const prevRecord = schedules[employeeId];
+    const newShifts = prevRecord ? { ...prevRecord.shifts } : {};
+
+    if (hours === 0) {
+      delete newShifts[day];
+    } else {
+      newShifts[day] = { hours };
+    }
+
+    const updatedSchedules = {
+      ...schedules,
+      [employeeId]: {
         employeeId,
         year: settings.year,
         month: settings.month,
-        shifts: {},
-      };
-    }
-
-    if (hours === 0) {
-      delete updatedSchedules[employeeId].shifts[day];
-    } else {
-      updatedSchedules[employeeId].shifts[day] = { hours };
-    }
+        ...(prevRecord ?? {}),
+        shifts: newShifts,
+      },
+    };
 
     setSchedules(updatedSchedules);
     saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
@@ -290,10 +295,12 @@ export default function App() {
     handleSaveEmployees(updatedEmployees);
 
     if (status) {
-      const updatedSchedules = { ...schedules };
-      if (updatedSchedules[employeeId]) {
-        updatedSchedules[employeeId].shifts = {};
-      }
+      const updatedSchedules = {
+        ...schedules,
+        ...(schedules[employeeId] ? {
+          [employeeId]: { ...schedules[employeeId], shifts: {} }
+        } : {}),
+      };
       setSchedules(updatedSchedules);
       saveSchedulesForPeriod(settings.year, settings.month, updatedSchedules);
     }
