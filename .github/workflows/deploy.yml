@@ -28,6 +28,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           cname: tabeli.imed.com.ge
-      - name: Deploy Firestore Rules
-        if: ${{ secrets.FIREBASE_TOKEN != '' }}
-        run: npx firebase-tools@latest deploy --only firestore:rules --token "${{ secrets.FIREBASE_TOKEN }}" --project tabeli-18c3b --non-interactive
