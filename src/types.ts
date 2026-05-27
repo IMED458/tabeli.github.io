@@ -31,6 +31,7 @@ export interface Employee {
   specialStatus?: SpecialStatusType | null; // active special status for the selected month which covers all days
   username?: string; // admin login username (for senior doctor / senior nurse)
   password?: string; // admin login password (for senior doctor / senior nurse)
+  inactiveFromPeriod?: string; // YYYY_M; hidden from this month onward, preserving older schedules
 }
 
 export interface SpecialLeaveRange {

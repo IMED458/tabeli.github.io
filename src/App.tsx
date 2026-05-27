@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Employee, PositionType, SpecialStatusType, EmployeeMonthlySchedule, SpecialLeaveRange } from "./types";
-import { GEORGIAN_MONTHS, isHolidayOrWeekend, getInitialShifts, POSITIONS } from "./constants";
+import { GEORGIAN_MONTHS, isHolidayOrWeekend, POSITIONS } from "./constants";
 import {
   setStoredEmployees,
   setStoredDeptSettings,
@@ -103,6 +103,14 @@ export default function App() {
   const [leaveSearchQuery, setLeaveSearchQuery] = useState<string>("");
   const [leavePositionFilter, setLeavePositionFilter] = useState<string>("ყველა");
 
+  const getPeriodValue = (year: number, month: number) => year * 100 + month;
+  const isEmployeeActiveForPeriod = (emp: Employee, year: number, month: number) => {
+    if (!emp.inactiveFromPeriod) return true;
+    const [inactiveYear, inactiveMonth] = emp.inactiveFromPeriod.split("_").map(Number);
+    return getPeriodValue(year, month) < getPeriodValue(inactiveYear, inactiveMonth);
+  };
+  const activeEmployees = employees.filter((emp) => isEmployeeActiveForPeriod(emp, settings.year, settings.month));
+
   // Real-time Firestore sync — single source of truth, no localStorage for data
   useEffect(() => {
     const storedEmpId = localStorage.getItem("hospital_logged_in_employee_id");
@@ -185,15 +193,13 @@ export default function App() {
     if (storedPeriod && Object.keys(storedPeriod).length > 0) {
       setSchedules(storedPeriod);
     } else {
-      // Generate default schedules and save to Firestore
-      const initialMap = getInitialShifts(employees, newYear, newMonth);
       const res: { [employeeId: string]: EmployeeMonthlySchedule } = {};
-      employees.forEach((emp) => {
+      employees.filter((emp) => isEmployeeActiveForPeriod(emp, newYear, newMonth)).forEach((emp) => {
         res[emp.id] = {
           employeeId: emp.id,
           year: newYear,
           month: newMonth,
-          shifts: initialMap[emp.id] || {},
+          shifts: {},
         };
       });
       setSchedules(res);
@@ -306,6 +312,20 @@ export default function App() {
     showToast("თანამშრომლის მიმდინარე თვის მორიგეობები გასუფთავდა", "success");
   };
 
+  const handleRemoveEmployeeFromMonth = (employeeId: string) => {
+    const target = employees.find((emp) => emp.id === employeeId);
+    if (!window.confirm(`ნამდვილად გსურთ ${target?.name || "თანამშრომლის"} ამ თვიდან ამოღება? წინა თვეების მორიგეობები შეინახება.`)) return;
+    const inactiveFromPeriod = periodKey(settings.year, settings.month);
+    const nextEmployees = employees.map((emp) => emp.id === employeeId ? { ...emp, inactiveFromPeriod } : emp);
+    const nextSchedules = { ...schedules };
+    delete nextSchedules[employeeId];
+    setEmployees(nextEmployees);
+    setSchedules(nextSchedules);
+    setStoredEmployees(nextEmployees);
+    saveSchedulesForPeriod(settings.year, settings.month, nextSchedules);
+    showToast("თანამშრომელი ამ თვიდან ამოღებულია", "success");
+  };
+
   // Special monthly leave statuses
   const handleUpdateEmployeeSpecialStatus = (employeeId: string, status: SpecialStatusType | null) => {
     const updatedEmployees = employees.map((emp) => {
@@ -377,7 +397,7 @@ export default function App() {
     const numDays = new Date(settings.year, settings.month, 0).getDate();
     const updatedSchedules = { ...schedules };
 
-    const targets = employees.filter((emp) => {
+    const targets = activeEmployees.filter((emp) => {
       if (emp.specialStatus) return false;
       if (params.employeeId === "all_by_position") {
         return emp.position === params.positionMatch;
@@ -449,18 +469,7 @@ export default function App() {
     const stored = schedulesByPeriodRef.current[periodKey(pYear, pMonth)];
     if (stored && Object.keys(stored).length > 0) return stored;
 
-    // Fallback: generate default previous month schedule
-    const initialMap = getInitialShifts(employeesList, pYear, pMonth);
-    const res: { [employeeId: string]: EmployeeMonthlySchedule } = {};
-    employeesList.forEach((emp) => {
-      res[emp.id] = {
-        employeeId: emp.id,
-        year: pYear,
-        month: pMonth,
-        shifts: initialMap[emp.id] || {},
-      };
-    });
-    return res;
+    return {};
   };
 
   const handleSyncRhythmFromPreviousMonth = () => {
@@ -471,13 +480,13 @@ export default function App() {
       pYear = settings.year - 1;
     }
 
-    const prevScheds = getPrevMonthSchedulesWithFallback(employees, settings.year, settings.month);
+    const prevScheds = getPrevMonthSchedulesWithFallback(activeEmployees, settings.year, settings.month);
     const numDays = new Date(settings.year, settings.month, 0).getDate();
     const updatedSchedules = { ...schedules };
 
     let successCount = 0;
 
-    employees.forEach((emp) => {
+    activeEmployees.forEach((emp) => {
       if (emp.specialStatus) return;
 
       const empPrev = prevScheds[emp.id];
@@ -486,6 +495,15 @@ export default function App() {
         .map(Number)
         .filter((d) => (prevShifts[d]?.hours || 0) > 0)
         .sort((a, b) => a - b);
+      if (workedDays.length === 0) {
+        updatedSchedules[emp.id] = {
+          employeeId: emp.id,
+          year: settings.year,
+          month: settings.month,
+          shifts: {},
+        };
+        return;
+      }
 
       const nonZeroHours = Object.keys(prevShifts)
         .map(Number)
@@ -577,11 +595,6 @@ export default function App() {
         }
       } else {
         let lastWorkedDay = workedDays[workedDays.length - 1];
-        if (!lastWorkedDay) {
-          const empIndex = employees.findIndex((e) => e.id === emp.id);
-          lastWorkedDay = 1 - detectedInterval + (empIndex % detectedInterval);
-        }
-
         const lastDate = new Date(pYear, pMonth - 1, lastWorkedDay);
         let nextDate = new Date(lastDate);
         nextDate.setDate(nextDate.getDate() + detectedInterval);
@@ -721,7 +734,7 @@ export default function App() {
     if (!isAdmin && loggedInEmployeeId) {
       setSelectedShiftEmpId(loggedInEmployeeId);
     } else {
-      setSelectedShiftEmpId(employees[0]?.id || "");
+      setSelectedShiftEmpId(activeEmployees[0]?.id || "");
     }
     
     setSelectedShiftHours(12);
@@ -743,7 +756,7 @@ export default function App() {
     if (!isAdmin && loggedInEmployeeId) {
       setLeaveEmployeeId(loggedInEmployeeId);
     } else {
-      setLeaveEmployeeId(employees[0]?.id || "");
+      setLeaveEmployeeId(activeEmployees[0]?.id || "");
     }
     
     setLeaveType("შვებულება");
@@ -1319,7 +1332,7 @@ export default function App() {
           <div className="print-full-width">
             {activeTab === "timesheet" && (
               <TimesheetGrid
-                employees={employees}
+                employees={activeEmployees}
                 schedules={schedules}
                 year={settings.year}
                 month={settings.month}
@@ -1341,7 +1354,7 @@ export default function App() {
                 <div className="lg:col-span-2 space-y-6">
                   {isAdmin && (
                     <ShiftQuickScheduler
-                      employees={employees}
+                      employees={activeEmployees}
                       year={settings.year}
                       month={settings.month}
                       onApplyRecurringShifts={handleApplyRecurringShifts}
@@ -1464,11 +1477,12 @@ export default function App() {
             {activeTab === "employees" && (
               <div className="no-print">
                 <EmployeeManager
-                  employees={employees}
+                  employees={activeEmployees}
                   onAddEmployee={handleAddEmployee}
                   onUpdateEmployee={handleUpdateEmployee}
                   onDeleteEmployee={handleDeleteEmployee}
                   onClearEmployeeMonthShifts={handleClearEmployeeMonthShifts}
+                  onRemoveEmployeeFromMonth={handleRemoveEmployeeFromMonth}
                 />
               </div>
             )}
@@ -1476,7 +1490,7 @@ export default function App() {
             {activeTab === "stats" && (
               <div className="no-print">
                 <StatsDashboard
-                  employees={employees}
+                  employees={activeEmployees}
                   schedules={schedules}
                   year={settings.year}
                   month={settings.month}
@@ -1653,14 +1667,14 @@ export default function App() {
                   
                   {/* Scrollable Selector Grid */}
                   <div className="max-h-36 overflow-y-auto border border-slate-100 rounded-lg p-1.5 bg-slate-50/50 space-y-1">
-                    {employees.filter(e => {
+                    {activeEmployees.filter(e => {
                       const matchedName = e.name.toLowerCase().includes(recSearchQuery.toLowerCase()) || e.personalId.includes(recSearchQuery);
                       const matchedPos = recPositionFilter === "ყველა" || e.position === recPositionFilter;
                       return matchedName && matchedPos;
                     }).length === 0 ? (
                       <p className="text-[11px] text-slate-400 font-bold py-4 text-center">შესაბამისი თანამშრომელი არ მოიძებნა</p>
                     ) : (
-                      employees.filter(e => {
+                      activeEmployees.filter(e => {
                         const matchedName = e.name.toLowerCase().includes(recSearchQuery.toLowerCase()) || e.personalId.includes(recSearchQuery);
                         const matchedPos = recPositionFilter === "ყველა" || e.position === recPositionFilter;
                         return matchedName && matchedPos;
@@ -1852,14 +1866,14 @@ export default function App() {
                   
                   {/* Scrollable Selector Grid for Vacation */}
                   <div className="max-h-36 overflow-y-auto border border-slate-100 rounded-lg p-1.5 bg-slate-50/50 space-y-1">
-                    {employees.filter(e => {
+                    {activeEmployees.filter(e => {
                       const matchedName = e.name.toLowerCase().includes(leaveSearchQuery.toLowerCase()) || e.personalId.includes(leaveSearchQuery);
                       const matchedPos = leavePositionFilter === "ყველა" || e.position === leavePositionFilter;
                       return matchedName && matchedPos;
                     }).length === 0 ? (
                       <p className="text-[11px] text-slate-400 font-bold py-4 text-center font-semibold">შესაბამისი პერსონალი არ მოიძებნა</p>
                     ) : (
-                      employees.filter(e => {
+                      activeEmployees.filter(e => {
                         const matchedName = e.name.toLowerCase().includes(leaveSearchQuery.toLowerCase()) || e.personalId.includes(leaveSearchQuery);
                         const matchedPos = leavePositionFilter === "ყველა" || e.position === leavePositionFilter;
                         return matchedName && matchedPos;
