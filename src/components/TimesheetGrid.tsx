@@ -373,14 +373,18 @@ export default function TimesheetGrid({
                             l.startDate <= dateStr && 
                             dateStr <= l.endDate
                           );
+                          const canEditCell = isAdmin || (loggedInEmployee && loggedInEmployee.id === emp.id);
 
                           if (activeRangeLeave) {
                             const abbr = STATUS_ABBREVIATIONS[activeRangeLeave.type] || "შვბ";
                             return (
                                 <td
                                   key={day}
-                                  className="p-0 border-r border-slate-150 text-center bg-amber-55 text-amber-950 font-extrabold text-[10.5px] border border-amber-250 select-none cursor-default"
-                                  title={`${emp.name}: ${activeRangeLeave.type} (${activeRangeLeave.startDate}-დან ${activeRangeLeave.endDate}-მდე) / ${isAdmin ? 'ადმინისტრატორის მართვადია' : 'მხოლოდ კითხვადი'}`}
+                                  onClick={() => canEditCell && openCellEditor(emp.id, day, 0)}
+                                  className={`p-0 border-r border-slate-150 text-center bg-amber-55 text-amber-950 font-extrabold text-[10.5px] border border-amber-250 select-none ${
+                                    canEditCell ? "cursor-pointer hover:bg-amber-100" : "cursor-default"
+                                  }`}
+                                  title={`${emp.name}: ${activeRangeLeave.type} (${activeRangeLeave.startDate}-დან ${activeRangeLeave.endDate}-მდე) / ${canEditCell ? 'დააწკაპუნეთ სამართავად' : 'მხოლოდ კითხვადი'}`}
                                 >
                                   <span className="block py-2.5 px-1 min-h-[35px] flex items-center justify-center">
                                     {abbr}
@@ -394,7 +398,6 @@ export default function TimesheetGrid({
                           const hrValue = dayShift ? dayShift.hours : 0;
 
                           const isWE = isHolidayOrWeekend(dateStr);
-                          const canEditCell = isAdmin || (loggedInEmployee && loggedInEmployee.id === emp.id);
 
                           return (
                             <td
